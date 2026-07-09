@@ -5,8 +5,8 @@ import type { Company, QKey } from "@/lib/types";
 import { QUESTIONS, QORDER } from "@/lib/questions";
 import { loadCompanies } from "@/lib/loadCompanies";
 import { useSession } from "@/lib/auth";
-import { loadOrCreateProfile, saveStreak } from "@/lib/profile";
-import { recordVote } from "@/lib/votes";
+import { loadProfile, saveStreak } from "@/lib/profile";
+import { castVote } from "@/lib/castVote";
 import {
   applyElo,
   composite,
@@ -81,11 +81,11 @@ export default function App() {
   }, []);
 
   // Once the pseudonymous identity settles, hydrate the persisted streak/tier
-  // from `profiles` (creating the row on first visit).
+  // from `profiles` (the row is created lazily by saveStreak, not here).
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-    loadOrCreateProfile(userId).then((p) => {
+    loadProfile(userId).then((p) => {
       if (!cancelled) setStreak(p.streak);
     });
     return () => {
@@ -146,37 +146,52 @@ export default function App() {
     });
   }
 
-  // Lock in the current provisional selection: record the vote, apply the
-  // (local-only) Elo, advance to the next pick or the daily-complete screen.
+  // Lock in the current provisional selection, advance the UI, and record the
+  // vote on the server. The DB's cast_vote function is authoritative: it
+  // validates, enforces the daily limit, and applies the real Elo change. We
+  // apply an optimistic local Elo move for instant feedback, then reconcile the
+  // two companies' ratings to the server's values when the call returns.
   function commitPick() {
     if (!decided) return;
     const qk = voteQ;
     const side = decided.winSide;
+    const winnerId = side === "A" ? a : b;
+    const loserId = side === "A" ? b : a;
     const next = companies.map((c) => ({ ...c, ratings: { ...c.ratings } }));
     const nextById = new Map(next.map((c) => [c.id, c]));
-    const winner = nextById.get(side === "A" ? a : b)!;
-    const loser = nextById.get(side === "A" ? b : a)!;
+    const winner = nextById.get(winnerId)!;
+    const loser = nextById.get(loserId)!;
 
-    // Now that it's confirmed, append the comparison to the immutable `votes`
-    // log (the real record). Fire-and-forget so a failed insert can't block UI.
-    if (userId) {
-      void recordVote({
-        voterId: userId,
-        companyA: a,
-        companyB: b,
-        dimension: qk,
-        winner: winner.id,
-        voterTier: tier.name,
-      });
-    }
-
-    // Optimistic LOCAL-ONLY Elo move. TODO(server route): a SECURITY DEFINER
-    // function should validate the vote and apply the real rating update
-    // server-side so ratings can't be forged by the client (CLAUDE.md / §7,§9).
+    // Optimistic local move (instant feedback; also the offline/unconfigured
+    // fallback when there's no backend or signed-in user).
     applyElo(winner, loser, qk, tier.mult);
     setCompanies(next);
     setTodaysPicks((p) => [...p, { q: qk, win: winner.name, lose: loser.name }]);
     setDecided(null);
+
+    // Authoritative server record + Elo. Reconcile local ratings to the values
+    // the DB actually applied (self-heals any optimistic drift; on refresh the
+    // app reloads from the DB anyway).
+    if (userId) {
+      void castVote({ companyA: a, companyB: b, dimension: qk, winner: winnerId }).then(
+        (outcome) => {
+          if (!outcome.ok) {
+            if (!outcome.alreadyVoted) console.error("cast_vote failed:", outcome.error);
+            return;
+          }
+          const { winner: wId, loser: lId, winnerElo, loserElo } = outcome.result;
+          setCompanies((prev) =>
+            prev.map((c) =>
+              c.id === wId
+                ? { ...c, ratings: { ...c.ratings, [qk]: { ...c.ratings[qk], elo: winnerElo } } }
+                : c.id === lId
+                  ? { ...c, ratings: { ...c.ratings, [qk]: { ...c.ratings[qk], elo: loserElo } } }
+                  : c,
+            ),
+          );
+        },
+      );
+    }
 
     const nextIndex = pickIndex + 1;
     setPickIndex(nextIndex);
