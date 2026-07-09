@@ -93,6 +93,9 @@ export default function App() {
   // The "you've used today's 3 picks" popup — shown when a finished user lands
   // back on the Vote tab (the vote area itself is also locked when doneToday).
   const [showLimitModal, setShowLimitModal] = useState(false);
+  // The "how the Elo scoring works" explainer — opened from the leaderboard
+  // (where the numbers live) and the sidebar, for people new to Elo ratings.
+  const [showScoring, setShowScoring] = useState(false);
   // The leaderboard is gated behind completing today's 3 picks. Persisted via
   // the profile's last_active_date, so it stays unlocked on refresh for the day.
   const [doneToday, setDoneToday] = useState(false);
@@ -724,6 +727,9 @@ export default function App() {
             <button className="rail-link" onClick={() => setShowOnboard(true)}>
               ⓘ How it works
             </button>
+            <button className="rail-link" onClick={() => setShowScoring(true)}>
+              📊 How scoring works
+            </button>
           </div>
           <div className="rail-card">
             <div className="rail-h">Discover</div>
@@ -1028,6 +1034,9 @@ export default function App() {
                   ⚙ Filter{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ""}
                 </button>
               </div>
+              <button className="scoring-link" onClick={() => setShowScoring(true)}>
+                ⓘ How are these scored?
+              </button>
               <div>
                 {tableRows.length === 0 ? (
                   <p className="note" style={{ textAlign: "center", padding: "22px 0" }}>
@@ -1381,6 +1390,80 @@ export default function App() {
             <button className="linklike" style={{ display: "block", margin: "12px auto 0" }} onClick={() => setShowLimitModal(false)}>
               Maybe later
             </button>
+          </div>
+        </div>
+      )}
+      {/* HOW SCORING WORKS — a plain-language Elo explainer, opened from the
+          leaderboard (where the numbers are) and the sidebar. */}
+      {showScoring && (
+        <div
+          className="onboard-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="scoring-title"
+          onClick={() => setShowScoring(false)}
+        >
+          <div className="onboard-card scoring-card" onClick={(e) => e.stopPropagation()}>
+            <div className="onboard-eyebrow">The ratings</div>
+            <h2 id="scoring-title" className="onboard-title">
+              How the <span>scoring</span> works
+            </h2>
+            <p className="onboard-sub">
+              Every company carries a live rating in each dimension. It&apos;s an <b>Elo</b> rating —
+              the same system that ranks chess players and tennis pros.
+            </p>
+            <ol className="onboard-steps">
+              <li>
+                <span className="onboard-ic">🥇</span>
+                <span>
+                  <b>Everyone starts at 1500.</b> Win a head-to-head and your rating rises; lose and it
+                  falls.
+                </span>
+              </li>
+              <li>
+                <span className="onboard-ic">🎯</span>
+                <span>
+                  <b>Upsets count for more.</b> Beating a favourite moves the needle far more than
+                  beating an underdog.
+                </span>
+              </li>
+              <li>
+                <span className="onboard-ic">🌱</span>
+                <span>
+                  <b>New companies are Provisional</b> — their rating swings fast until they&apos;ve had
+                  enough votes, then it settles.
+                </span>
+              </li>
+              <li>
+                <span className="onboard-ic">🔥</span>
+                <span>
+                  <b>Stronger voters carry more weight.</b> A longer daily streak lifts your credibility
+                  tier, so your picks nudge ratings a little harder.
+                </span>
+              </li>
+              <li>
+                <span className="onboard-ic">📊</span>
+                <span>
+                  <b>Three independent scores</b> — Value, Growth, and Workplace — so a company can lead
+                  on one and trail on another.
+                </span>
+              </li>
+            </ol>
+            <button className="nextbtn onboard-cta" onClick={() => setShowScoring(false)}>
+              Got it
+            </button>
+            <p className="onboard-fine">
+              It&apos;s all open source —{" "}
+              <a
+                className="footer-name"
+                href="https://github.com/mancunianinnyc/ConvictionELO"
+                target="_blank"
+                rel="noreferrer"
+              >
+                check our math
+              </a>
+              .
+            </p>
           </div>
         </div>
       )}
