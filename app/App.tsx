@@ -170,6 +170,12 @@ export default function App() {
   const byId = useMemo(() => new Map(companies.map((c) => [c.id, c])), [companies]);
   // Companies eligible for the arena (voting + live rankings).
   const activeCompanies = useMemo(() => companies.filter(isActive), [companies]);
+  // Newest additions (highest ids), for the desktop Discover rail — a peek into
+  // the arena that doesn't leak the gated leaderboard.
+  const recentlyAdded = useMemo(
+    () => [...companies].sort((a, b) => b.id - a.id).slice(0, 5),
+    [companies],
+  );
   const graduates = useMemo(
     () =>
       companies
@@ -657,9 +663,36 @@ export default function App() {
     );
   }
 
+  // Rails flank the focused vote/done column on desktop only; other views keep
+  // the plain centered layout (Tables widens itself instead — see .wrap-wide).
+  const railsOn = view === "vote" || view === "done";
+
   return (
-    <div className="wrap">
-      <header className="top">
+    <div className={"shell" + (railsOn ? " shell-rails" : "")}>
+      {railsOn && (
+        <aside className="rail rail-left" aria-label="Your day">
+          <div className="rail-card">
+            <div className="rail-h">Your day</div>
+            <div className="rail-streak">🔥 {streak} day streak</div>
+            <span className="rail-tier" style={{ background: tier.color }}>
+              {tier.name}
+            </span>
+            <div className="rail-row">
+              <span>Picks made today</span>
+              <b>{Math.min(pickIndex, 3)} / 3</b>
+            </div>
+            <div className="rail-row">
+              <span>Vote weight</span>
+              <b>×{tier.mult.toFixed(2)}</b>
+            </div>
+            <button className="rail-link" onClick={() => setShowOnboard(true)}>
+              ⓘ How it works
+            </button>
+          </div>
+        </aside>
+      )}
+      <div className={"wrap" + (view === "board" ? " wrap-wide" : "")}>
+        <header className="top">
         <div className="brand">
           <div className="logo">
             <span className="spark">⚡</span> Conviction<b>ELO</b>
@@ -1305,6 +1338,45 @@ export default function App() {
           <span className="ic">➕</span>Submit
         </button>
       </nav>
+      </div>
+      {railsOn && (
+        <aside className="rail rail-right" aria-label="Discover startups">
+          <div className="rail-card">
+            <div className="rail-h">Discover</div>
+            <div className="rail-stats">
+              <div>
+                <b>{companies.length}</b>
+                <span>startups</span>
+              </div>
+              <div>
+                <b>{CATEGORIES.length}</b>
+                <span>categories</span>
+              </div>
+              <div>
+                <b>{REGIONS.length}</b>
+                <span>regions</span>
+              </div>
+            </div>
+            <div className="rail-sub">Just added</div>
+            <div className="rail-recent">
+              {recentlyAdded.map((c) => (
+                <button key={c.id} className="rail-co" onClick={() => setPeekId(c.id)}>
+                  <Logo c={c} cls="rail-logo" />
+                  <span className="rail-co-txt">
+                    <b>{c.name}</b>
+                    <small>
+                      {c.category} · {c.region}
+                    </small>
+                  </span>
+                </button>
+              ))}
+            </div>
+            <button className="rail-cta" onClick={() => setView("submit")}>
+              ➕ Submit a startup
+            </button>
+          </div>
+        </aside>
+      )}
     </div>
   );
 }
