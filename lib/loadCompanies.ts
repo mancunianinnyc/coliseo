@@ -21,10 +21,13 @@ interface CompanyRow {
   founders: string[] | null;
   tags: string[] | null;
   links: CompanyLinks | null;
+  lifecycle: Company["lifecycle"];
+  exited_at: string | null;
+  exit_note: string | null;
 }
 
 const COMPANY_COLUMNS =
-  "id, name, website, category, region, stage, blurb, gradient, logo_url, description, founded_year, headquarters, employees, total_funding, valuation, founders, tags, links";
+  "id, name, website, category, region, stage, blurb, gradient, logo_url, description, founded_year, headquarters, employees, total_funding, valuation, founders, tags, links, lifecycle, exited_at, exit_note";
 
 interface RatingRow {
   company_id: number;
@@ -93,6 +96,9 @@ export async function loadCompanies(): Promise<Company[]> {
       founders: c.founders ?? undefined,
       tags: c.tags ?? undefined,
       links: c.links ?? undefined,
+      lifecycle: c.lifecycle ?? "active",
+      exitedAt: c.exited_at,
+      exitNote: c.exit_note,
     };
   });
 }

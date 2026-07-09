@@ -1,4 +1,4 @@
-import type { Stage } from "./types";
+import type { Lifecycle, Stage } from "./types";
 
 // ⚠️  SEED DATASET — hand-compiled from public knowledge as a launch starting
 //     point (~250 companies). Facts (especially funding/valuation/headcount)
@@ -58,6 +58,33 @@ export const CATEGORIES = [
   "Edtech",
   "Media & Gaming",
 ] as const;
+
+// Companies in the seed that have GRADUATED from the arena — went public, were
+// acquired, or shut down — keyed by name. They keep their profile + rating but
+// are excluded from voting and the live rankings. ⚠️ VERIFY / keep current.
+export const EXITS: Record<string, { s: Lifecycle; note: string; year?: number }> = {
+  Snowflake: { s: "public", note: "IPO 2020 · NYSE: SNOW", year: 2020 },
+  Coinbase: { s: "public", note: "IPO 2021 · NASDAQ: COIN", year: 2021 },
+  Circle: { s: "public", note: "IPO 2025 · NYSE: CRCL", year: 2025 },
+  Reddit: { s: "public", note: "IPO 2024 · NYSE: RDDT", year: 2024 },
+  Duolingo: { s: "public", note: "IPO 2021 · NASDAQ: DUOL", year: 2021 },
+  Shopify: { s: "public", note: "IPO 2015 · NYSE: SHOP", year: 2015 },
+  Instacart: { s: "public", note: "IPO 2023 · NASDAQ: CART", year: 2023 },
+  GitLab: { s: "public", note: "IPO 2021 · NASDAQ: GTLB", year: 2021 },
+  Klarna: { s: "public", note: "IPO 2025 · NYSE: KLAR", year: 2025 },
+  Chime: { s: "public", note: "IPO 2025 · NASDAQ: CHYM", year: 2025 },
+  CoreWeave: { s: "public", note: "IPO 2025 · NASDAQ: CRWV", year: 2025 },
+  MercadoLibre: { s: "public", note: "Public · NASDAQ: MELI", year: 2007 },
+  dLocal: { s: "public", note: "IPO 2021 · NASDAQ: DLO", year: 2021 },
+  Nubank: { s: "public", note: "IPO 2021 · NYSE: NU", year: 2021 },
+  Figma: { s: "public", note: "IPO 2025 · NYSE: FIG", year: 2025 },
+  Wise: { s: "public", note: "Direct listing 2021 · LSE: WISE", year: 2021 },
+  Freshworks: { s: "public", note: "IPO 2021 · NASDAQ: FRSH", year: 2021 },
+  Tempus: { s: "public", note: "IPO 2024 · NASDAQ: TEM", year: 2024 },
+  "Hinge Health": { s: "public", note: "IPO 2025 · NYSE: HNGE", year: 2025 },
+  "Rocket Lab": { s: "public", note: "Public 2021 · NASDAQ: RKLB", year: 2021 },
+  Loom: { s: "acquired", note: "Acquired by Atlassian, 2023", year: 2023 },
+};
 
 export const REGIONS = [
   "US",

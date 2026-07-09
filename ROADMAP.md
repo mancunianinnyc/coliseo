@@ -21,6 +21,9 @@ community interest move up. See [CONTRIBUTING.md](./CONTRIBUTING.md), and
 - **Pseudonymous accounts** — anonymous auth (no PII); daily streak → credibility tier → vote weight.
 - **Server-authoritative scoring** — the `cast_vote` Postgres function (`supabase/cast_vote.sql`) validates each vote, applies the Elo atomically, and enforces the 3-picks-per-day limit. Ratings cannot be forged client-side.
 - **Rich company profiles** — Crunchbase-style dossiers (description, founded, HQ, team size, funding, valuation, founders, tags, links), self-hosted logos, and URL auto-fill on the Submit page.
+- **A populated arena** — ~255 seeded startups across 21 categories and 8 regions (with strong LatAm coverage), everyone launching Provisional so the crowd decides.
+- **"I don't know this company"** — a per-company obscurity signal, separate from a toss-up skip.
+- **Eligibility & lifecycle** — only private, venture-backed, alive companies compete; those that IPO / get acquired / shut down *graduate* into an archived hall of fame (excluded from the rankings, profile preserved).
 
 ## 🔜 Next — the growth + trust core
 - **Share cards + dynamic Open Graph images** — a branded, spoiler-friendly "I called X over Y" card per result, each with a canonical public URL. The primary growth loop.

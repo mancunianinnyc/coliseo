@@ -48,13 +48,15 @@ async function main() {
       c.headquarters ?? null, c.employees ?? null, c.totalFunding ?? null,
       c.valuation ?? null, c.founders ?? null, c.tags ?? null,
       c.links ? JSON.stringify(c.links) : null,
+      c.lifecycle ?? "active", c.exitedAt ?? null, c.exitNote ?? null,
     ]);
     const { rows: inserted } = await client.query(
       `insert into companies
          (name, website, category, region, stage, blurb, gradient,
           logo_url, description, founded_year, headquarters, employees,
-          total_funding, valuation, founders, tags, links, status)
-       values ${placeholders(companies.length, 17, ", 'live'")}
+          total_funding, valuation, founders, tags, links,
+          lifecycle, exited_at, exit_note, status)
+       values ${placeholders(companies.length, 20, ", 'live'")}
        returning id`,
       companyParams,
     );

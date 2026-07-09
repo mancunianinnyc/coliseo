@@ -43,6 +43,10 @@ These are expected TODOs, not bugs:
   the prominent ones especially. Data lives in `lib/companies.data.ts`; a re-seed
   via `npm run db:reset-test-data` applies any edits. Social links and a few
   domains are best-guess; click through and fix 404s / wrong logos.
+- **Review eligibility & graduates.** The seed marks ~20 companies as graduated
+  (public/acquired) in the `EXITS` map in `lib/companies.data.ts` — sanity-check
+  that list (and add any that IPO'd/were acquired since). Only private,
+  venture-backed, alive companies should be `active`.
 - **Review Row-Level Security.** Double-check the policies in
   `supabase/schema.sql` (+ the `cast_vote` function in `supabase/cast_vote.sql`)
   so nobody can vote as someone else or push a company straight to "live".
