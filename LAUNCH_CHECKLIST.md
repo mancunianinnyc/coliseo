@@ -37,11 +37,12 @@ database password**, then update `SUPABASE_DB_URL` in your local `.env.local`.
 
 These are expected TODOs, not bugs:
 
-- **Verify the company profile data.** The 18 seed companies' founded year, HQ,
-  team size, funding, valuation and founders were hand-filled from public
-  knowledge and may be out of date — spot-check them (they live in `lib/seed.ts`,
-  and a re-seed via `npm run db:reset-test-data` applies any edits). Social links
-  (X / LinkedIn / Crunchbase) are best-guess slugs; click through and fix any 404s.
+- **Verify the company data.** The ~255 seed companies (founded year, HQ, team
+  size, funding, valuation, founders, categories, domains) were hand-compiled
+  from public knowledge and will contain errors and stale figures — spot-check
+  the prominent ones especially. Data lives in `lib/companies.data.ts`; a re-seed
+  via `npm run db:reset-test-data` applies any edits. Social links and a few
+  domains are best-guess; click through and fix 404s / wrong logos.
 - **Review Row-Level Security.** Double-check the policies in
   `supabase/schema.sql` (+ the `cast_vote` function in `supabase/cast_vote.sql`)
   so nobody can vote as someone else or push a company straight to "live".

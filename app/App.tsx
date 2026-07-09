@@ -4,9 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import type { Company, QKey } from "@/lib/types";
 import { QUESTIONS, QORDER } from "@/lib/questions";
 import { loadCompanies } from "@/lib/loadCompanies";
+import { CATEGORIES, REGIONS } from "@/lib/companies.data";
 import { useSession } from "@/lib/auth";
 import { loadProfile, saveStreak } from "@/lib/profile";
 import { castVote } from "@/lib/castVote";
+import { flagUnknown } from "@/lib/unknowns";
 import {
   applyElo,
   composite,
@@ -68,7 +70,7 @@ export default function App() {
   const [dim, setDim] = useState<Dim>("category");
   const [filter, setFilter] = useState<string>("All");
   const [profileId, setProfileId] = useState<number | null>(null);
-  const [form, setForm] = useState({ url: "", name: "", cat: "AI Infra", reg: "US", blurb: "", logoUrl: "" });
+  const [form, setForm] = useState({ url: "", name: "", cat: "AI", reg: "US", blurb: "", logoUrl: "" });
   const [enrich, setEnrich] = useState<{ state: "idle" | "loading" | "ok" | "err"; msg: string }>({
     state: "idle",
     msg: "",
@@ -213,6 +215,14 @@ export default function App() {
     }
   }
 
+  // "I don't know this company." Records an obscurity signal for that specific
+  // company (not a vote — never touches Elo) and reshuffles the matchup, since
+  // you can't judge a pair you don't recognise.
+  function markUnknown(company: Company) {
+    if (userId) void flagUnknown(userId, company.id, voteQ);
+    newMatch();
+  }
+
   function simDay() {
     // Missed day (set unfinished) decays one tier; otherwise a clean new day.
     if (pickIndex < 3) {
@@ -282,7 +292,7 @@ export default function App() {
         logoUrl: form.logoUrl || null,
       },
     ]);
-    setForm({ url: "", name: "", cat: "AI Infra", reg: "US", blurb: "", logoUrl: "" });
+    setForm({ url: "", name: "", cat: "AI", reg: "US", blurb: "", logoUrl: "" });
     setEnrich({ state: "idle", msg: "" });
     setView("board");
     setBoardQ("ALL");
@@ -398,8 +408,19 @@ export default function App() {
               </span>
             ))}
           </div>
+          {!decided && (
+            <div className="dunno">
+              <span className="dunno-l">Don&apos;t know them?</span>
+              <button className="dunno-b" onClick={() => markUnknown(A)}>
+                ❓ {A.name}
+              </button>
+              <button className="dunno-b" onClick={() => markUnknown(B)}>
+                ❓ {B.name}
+              </button>
+            </div>
+          )}
           <button className="skip" onClick={() => newMatch()}>
-            🤷 Can&apos;t decide — skip (free)
+            🤔 Too close to call — skip
           </button>
           {decided && (
             <>
@@ -425,7 +446,7 @@ export default function App() {
           <p className="note">
             {anonDisabled
               ? "⚠ Anonymous sign-ins are disabled in Supabase — votes aren’t being recorded yet. Enable them in Authentication → Sign In / Providers."
-              : "Votes are recorded to your pseudonymous profile · logos via Clearbit"}
+              : "Votes are recorded to your pseudonymous profile · 255 startups and counting"}
           </p>
         </section>
       )}
@@ -579,7 +600,9 @@ export default function App() {
                 </div>
               )}
 
-              {c.description && <p className="profile-desc">{c.description}</p>}
+              {(c.description || c.blurb) && (
+                <p className="profile-desc">{c.description || c.blurb}</p>
+              )}
 
               {shownFacts.length > 0 && (
                 <div className="facts">
@@ -717,17 +740,15 @@ export default function App() {
               <div>
                 <label>Category</label>
                 <select value={form.cat} onChange={(e) => setForm({ ...form, cat: e.target.value })}>
-                  {["AI Infra", "Fintech", "Dev Tools", "Consumer", "SaaS", "Hardware", "Health"].map(
-                    (o) => (
-                      <option key={o}>{o}</option>
-                    ),
-                  )}
+                  {CATEGORIES.map((o) => (
+                    <option key={o}>{o}</option>
+                  ))}
                 </select>
               </div>
               <div>
                 <label>Region</label>
                 <select value={form.reg} onChange={(e) => setForm({ ...form, reg: e.target.value })}>
-                  {["US", "Europe", "APAC", "Israel", "LatAm", "Other"].map((o) => (
+                  {REGIONS.map((o) => (
                     <option key={o}>{o}</option>
                   ))}
                 </select>

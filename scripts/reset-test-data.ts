@@ -24,7 +24,7 @@ if (!connectionString) {
 // foreign keys between them; RESTART IDENTITY resets company ids back to 1 so a
 // re-seed is identical to a first seed. auth.users is NOT touched here — clear
 // anonymous test users from the Supabase dashboard if you want those gone too.
-const TABLES = ["votes", "profiles", "revisions", "ratings", "companies"] as const;
+const TABLES = ["company_unknowns", "votes", "profiles", "revisions", "ratings", "companies"] as const;
 
 async function count(client: Client, table: string): Promise<number> {
   const { rows } = await client.query(`select count(*)::int as n from ${table}`);
