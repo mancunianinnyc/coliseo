@@ -265,7 +265,7 @@ export const COMPANIES: SeedCompany[] = [
   { n: "Oura", d: "ouraring.com", cat: "Consumer", reg: "Europe", st: "Late", p: 3, b: "The smart health ring.", founded: 2013, hq: "Oulu, Finland", tags: ["Consumer", "Wearables", "Health"], cbh: "oura" },
   { n: "Partiful", d: "partiful.com", cat: "Consumer", reg: "US", st: "Growth", p: 2, b: "Party invites & event planning.", founded: 2020, hq: "New York, USA", tags: ["Consumer", "Social", "Events"] },
   { n: "Calm", d: "calm.com", cat: "Consumer", reg: "US", st: "Late", p: 3, b: "Meditation & sleep app.", founded: 2012, hq: "San Francisco, USA", tags: ["Consumer", "Wellness"], cbh: "calm-com" },
-  { n: "Beli", d: "welcometobeli.com", cat: "Consumer", reg: "US", st: "Growth", p: 3, b: "Rank & discover restaurants with friends.", founded: 2021, hq: "New York, USA", tags: ["Consumer", "Social", "Food"] },
+  { n: "Beli", d: "beliapp.co", cat: "Consumer", reg: "US", st: "Growth", p: 3, b: "Rank & discover restaurants with friends.", founded: 2021, hq: "New York, USA", tags: ["Consumer", "Social", "Food"] },
 
   // ---------------- Commerce ----------------
   { n: "Shopify", d: "shopify.com", cat: "Commerce", reg: "Canada", st: "Late", p: 5, b: "Commerce platform for merchants.", founded: 2006, hq: "Ottawa, Canada", fo: ["Tobias Lütke", "Daniel Weinand", "Scott Lake"], tags: ["Commerce", "E-commerce"], cbh: "shopify" },
@@ -396,7 +396,7 @@ export const COMPANIES: SeedCompany[] = [
   { n: "Gong", d: "gong.io", cat: "SaaS", reg: "US", st: "Late", p: 3, b: "Revenue intelligence from customer conversations.", founded: 2015, hq: "San Francisco, USA", fo: ["Amit Bendov", "Eilon Reshef"], tags: ["SaaS", "Sales", "AI"], cbh: "gong-io" },
   { n: "Bilt Rewards", d: "biltrewards.com", cat: "Fintech", reg: "US", st: "Late", p: 3, b: "Rewards for paying rent.", founded: 2019, hq: "New York, USA", fo: ["Ankur Jain"], tags: ["Fintech", "Rewards", "Consumer"], cbh: "bilt-rewards" },
   { n: "Modern Treasury", d: "moderntreasury.com", cat: "Fintech", reg: "US", st: "Growth", p: 2, b: "Payment operations software.", founded: 2018, hq: "San Francisco, USA", tags: ["Fintech", "Payments", "Infrastructure"], cbh: "modern-treasury" },
-  { n: "Frubana", d: "frubana.com", cat: "Commerce", reg: "LatAm", st: "Growth", p: 2, b: "B2B marketplace supplying restaurants in LatAm.", founded: 2018, hq: "Bogotá, Colombia", tags: ["Commerce", "B2B", "LatAm"], cbh: "frubana" },
+  { n: "Frubana", d: "frubana.com.co", cat: "Commerce", reg: "LatAm", st: "Growth", p: 2, b: "B2B marketplace supplying restaurants in LatAm.", founded: 2018, hq: "Bogotá, Colombia", tags: ["Commerce", "B2B", "LatAm"], cbh: "frubana" },
   { n: "Stori", d: "storicard.com", cat: "Fintech", reg: "LatAm", st: "Growth", p: 2, b: "Credit cards for underbanked Mexicans.", founded: 2018, hq: "Mexico City, Mexico", tags: ["Fintech", "Credit", "LatAm"], cbh: "stori" },
 
   // ---------------- Early-stage (2024+) ----------------
