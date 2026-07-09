@@ -323,7 +323,6 @@ export default function App() {
 
   // ---------- render helpers ----------
   const Fighter = ({ c, side }: { c: Company; side: "A" | "B" }) => {
-    const cf = confidence(c, voteQ);
     const selected = decided && decided.winSide === side;
     const delta = decided ? (side === "A" ? decided.dA : decided.dB) : 0;
     const previewElo = decided ? (side === "A" ? decided.eloA : decided.eloB) : c.ratings[voteQ].elo;
@@ -334,24 +333,40 @@ export default function App() {
         role="button"
         aria-pressed={!!selected}
       >
-        <div className={`tag ${cf === "Established" ? "est" : "prov"}`}>{cf}</div>
         <Logo c={c} cls="emoji" />
-        <div className="nm">{c.name}</div>
-        <div className="cat">
-          {c.category} · {c.region} · {c.stage}
+        <div className="f-info">
+          <div className="nm">{c.name}</div>
+          <div className="cat">
+            {c.category} · {c.region} · {c.stage}
+          </div>
+          <div className="blurb">{c.blurb}</div>
         </div>
-        <div className="blurb">{c.blurb}</div>
-        {decided && (
-          <>
-            <div className="elo">
-              {QUESTIONS[voteQ].emoji} Elo {previewElo}
-            </div>
-            <div className={`delta ${delta >= 0 ? "up" : "down"}`}>
-              {delta >= 0 ? "▲ +" : "▼ "}
-              {delta}
-            </div>
-          </>
-        )}
+        <div className="f-score">
+          {decided ? (
+            <>
+              <div className="elo">
+                {QUESTIONS[voteQ].emoji} {previewElo}
+              </div>
+              <div className={`delta ${delta >= 0 ? "up" : "down"}`}>
+                {delta >= 0 ? "▲ +" : "▼ "}
+                {delta}
+              </div>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="dunno-tag"
+              title={`I don't know ${c.name}`}
+              aria-label={`I don't know ${c.name}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                markUnknown(c);
+              }}
+            >
+              🤷 <span>don&apos;t know</span>
+            </button>
+          )}
+        </div>
       </div>
     );
   };
@@ -414,31 +429,11 @@ export default function App() {
             </div>
             <Fighter c={B} side="B" />
           </div>
-          <div className="subq">
-            {QORDER.map((k, i) => (
-              <span
-                key={k}
-                className={`chip ${i === pickIndex ? "active" : i < pickIndex ? "done" : "up"}`}
-              >
-                {i < pickIndex ? "✓ " : ""}
-                {QUESTIONS[k].chip}
-              </span>
-            ))}
-          </div>
           {!decided && (
-            <div className="dunno">
-              <span className="dunno-l">Don&apos;t know them?</span>
-              <button className="dunno-b" onClick={() => markUnknown(A)}>
-                ❓ {A.name}
-              </button>
-              <button className="dunno-b" onClick={() => markUnknown(B)}>
-                ❓ {B.name}
-              </button>
-            </div>
+            <button className="skip" onClick={() => newMatch()}>
+              🤔 Too close to call — skip
+            </button>
           )}
-          <button className="skip" onClick={() => newMatch()}>
-            🤔 Too close to call — skip
-          </button>
           {decided && (
             <>
               <div className="resultmsg">
@@ -852,6 +847,13 @@ export default function App() {
           </p>
         </section>
       )}
+
+      <footer className="site-footer">
+        Made for fun by <b>Ross Garlick</b>. Contribute to the project:{" "}
+        <a href="https://github.com/mancunianinnyc/ConvictionELO" target="_blank" rel="noreferrer">
+          github.com/mancunianinnyc/ConvictionELO ↗
+        </a>
+      </footer>
 
       <nav className="bottom">
         <button className={view === "vote" || view === "done" ? "active" : ""} onClick={() => setView("vote")}>
