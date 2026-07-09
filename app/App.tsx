@@ -636,9 +636,11 @@ export default function App() {
             <b>×{tier.mult.toFixed(2)}</b>
           </div>
         </div>
-        <button className="simday" onClick={simDay}>
-          ▶ new day
-        </button>
+        {process.env.NODE_ENV !== "production" && (
+          <button className="simday" onClick={simDay}>
+            ▶ new day
+          </button>
+        )}
       </div>
 
       {/* VOTE */}
