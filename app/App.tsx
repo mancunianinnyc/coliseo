@@ -28,6 +28,10 @@ type BoardQ = QKey | "ALL";
 // The three arena stage tiers, in progression order — the Tables' stage filter.
 const STAGES = ["Early", "Growth", "Late"] as const;
 
+// First-run onboarding is shown once per browser. Bump the version suffix to
+// re-show the explainer after a material change to its copy.
+const ONBOARD_KEY = "ce_onboarded_v1";
+
 function Logo({ c, cls }: { c: Company; cls: string }) {
   return (
     <div className={cls} style={{ background: c.gradient }}>
@@ -83,6 +87,9 @@ export default function App() {
   const [stageFilter, setStageFilter] = useState<string>("All");
   const [showFilters, setShowFilters] = useState(false);
   const [showGrads, setShowGrads] = useState(false);
+  // First-run explainer overlay — opened on a visitor's first ever load (see the
+  // ONBOARD_KEY effect) and dismissed for good once they've seen it.
+  const [showOnboard, setShowOnboard] = useState(false);
   // The leaderboard is gated behind completing today's 3 picks. Persisted via
   // the profile's last_active_date, so it stays unlocked on refresh for the day.
   const [doneToday, setDoneToday] = useState(false);
@@ -111,6 +118,16 @@ export default function App() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  // Show the first-run explainer once per browser. localStorage may be
+  // unavailable (private mode / blocked); if so, just skip it silently.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(ONBOARD_KEY) !== "1") setShowOnboard(true);
+    } catch {
+      /* no-op */
+    }
   }, []);
 
   // Once the pseudonymous identity settles, hydrate the persisted streak/tier
@@ -274,6 +291,17 @@ export default function App() {
     setDoneToday(false); // new day — re-lock the tables until 3 picks are done
     setPair(nearestPair(companies, "V"));
     setView("vote");
+  }
+
+  // Close the first-run explainer and remember it, so it never shows again on
+  // this browser.
+  function dismissOnboard() {
+    try {
+      localStorage.setItem(ONBOARD_KEY, "1");
+    } catch {
+      /* no-op */
+    }
+    setShowOnboard(false);
   }
 
   // Auto-fill the Submit form from the company's own website (see
@@ -1098,6 +1126,52 @@ export default function App() {
       {/* PEEK — read-only dossier for a company you don't recognise, shown as a
           bottom sheet over the vote flow. Closing it returns you to the exact
           same matchup; no vote is cast. */}
+      {/* FIRST-RUN ONBOARDING — a one-time, dismissible explainer of the whole
+          loop, shown on a visitor's first ever load. Kept deliberately short:
+          comprehension in the first few seconds is what earns a second visit. */}
+      {showOnboard && (
+        <div
+          className="onboard-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="onboard-title"
+          onClick={dismissOnboard}
+        >
+          <div className="onboard-card" onClick={(e) => e.stopPropagation()}>
+            <div className="onboard-eyebrow">Welcome</div>
+            <h2 id="onboard-title" className="onboard-title">
+              Rank startups by <span>conviction</span>
+            </h2>
+            <p className="onboard-sub">A 30-second daily game. Here&apos;s the whole thing:</p>
+            <ol className="onboard-steps">
+              <li>
+                <span className="onboard-ic">⚔️</span>
+                <span>
+                  <b>Pick a winner.</b> Two startups go head-to-head — tap the one you back.
+                </span>
+              </li>
+              <li>
+                <span className="onboard-ic">🎯</span>
+                <span>
+                  <b>Three picks a day,</b> one per question: 💰 worth more in 10 years · 📈 grows faster this
+                  year · 💼 you&apos;d rather work at.
+                </span>
+              </li>
+              <li>
+                <span className="onboard-ic">📊</span>
+                <span>
+                  <b>Your vote moves a live rating.</b> Finish today&apos;s three to unlock the leaderboard —
+                  come back daily to build a streak.
+                </span>
+              </li>
+            </ol>
+            <button className="nextbtn onboard-cta" onClick={dismissOnboard}>
+              Start voting →
+            </button>
+            <p className="onboard-fine">No signup, no name — you&apos;re anonymous.</p>
+          </div>
+        </div>
+      )}
       {peekId !== null && byId.get(peekId) && (
         <div
           className="peek-backdrop"
