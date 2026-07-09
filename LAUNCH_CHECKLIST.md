@@ -37,13 +37,14 @@ database password**, then update `SUPABASE_DB_URL` in your local `.env.local`.
 
 These are expected TODOs, not bugs:
 
-- **Server-side vote handling.** Right now a vote is recorded to the `votes` log,
-  but the Elo score change shown on screen is display-only and not saved. The
-  leaderboard won't actually move until we add the server route that validates a
-  vote and applies the Elo change (and enforces the 3-picks-per-day limit).
+- **Verify the company profile data.** The 18 seed companies' founded year, HQ,
+  team size, funding, valuation and founders were hand-filled from public
+  knowledge and may be out of date — spot-check them (they live in `lib/seed.ts`,
+  and a re-seed via `npm run db:reset-test-data` applies any edits). Social links
+  (X / LinkedIn / Crunchbase) are best-guess slugs; click through and fix any 404s.
 - **Review Row-Level Security.** Double-check the policies in
-  `supabase/schema.sql` so nobody can vote as someone else or push a company
-  straight to "live".
+  `supabase/schema.sql` (+ the `cast_vote` function in `supabase/cast_vote.sql`)
+  so nobody can vote as someone else or push a company straight to "live".
 
 ## 5. Nice-to-haves
 

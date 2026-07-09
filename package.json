@@ -10,7 +10,8 @@
     "db:apply-schema": "tsx scripts/apply-schema.ts",
     "db:apply-sql": "tsx scripts/apply-sql.ts",
     "db:seed": "tsx scripts/seed.ts",
-    "db:reset-test-data": "tsx scripts/reset-test-data.ts && tsx scripts/seed.ts"
+    "db:reset-test-data": "tsx scripts/reset-test-data.ts && tsx scripts/seed.ts",
+    "logos:fetch": "tsx scripts/fetch-logos.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",

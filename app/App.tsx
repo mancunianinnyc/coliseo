@@ -27,13 +27,15 @@ function Logo({ c, cls }: { c: Company; cls: string }) {
   return (
     <div className={cls} style={{ background: c.gradient }}>
       {c.name[0]}
-      <img
-        src={`https://logo.clearbit.com/${c.website}`}
-        alt=""
-        onError={(e) => {
-          (e.currentTarget as HTMLImageElement).style.display = "none";
-        }}
-      />
+      {c.logoUrl && (
+        <img
+          src={c.logoUrl}
+          alt=""
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -66,7 +68,11 @@ export default function App() {
   const [dim, setDim] = useState<Dim>("category");
   const [filter, setFilter] = useState<string>("All");
   const [profileId, setProfileId] = useState<number | null>(null);
-  const [form, setForm] = useState({ url: "", name: "", cat: "AI Infra", reg: "US", blurb: "" });
+  const [form, setForm] = useState({ url: "", name: "", cat: "AI Infra", reg: "US", blurb: "", logoUrl: "" });
+  const [enrich, setEnrich] = useState<{ state: "idle" | "loading" | "ok" | "err"; msg: string }>({
+    state: "idle",
+    msg: "",
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -223,6 +229,37 @@ export default function App() {
     setView("vote");
   }
 
+  // Auto-fill the Submit form from the company's own website (see
+  // app/api/enrich/route.ts). Best-effort: fills name/blurb/logo as editable
+  // suggestions; the user can correct anything before submitting.
+  async function enrichFromUrl() {
+    const url = form.url.trim();
+    if (!url) return;
+    setEnrich({ state: "loading", msg: "Reading the site…" });
+    try {
+      const res = await fetch(`/api/enrich?url=${encodeURIComponent(url)}`);
+      const data = await res.json();
+      if (data.error && !data.name) {
+        setEnrich({ state: "err", msg: "Couldn’t read that site — fill it in manually." });
+        return;
+      }
+      setForm((f) => ({
+        ...f,
+        name: data.name || f.name,
+        blurb: data.description || f.blurb,
+        logoUrl: data.logo || f.logoUrl,
+      }));
+      if (!data.name && !data.description) {
+        // Some sites (JS-rendered SPAs) publish no readable tags.
+        setEnrich({ state: "err", msg: "This site didn’t share much — please fill in the details." });
+      } else {
+        setEnrich({ state: "ok", msg: "Filled from the site — check and edit as needed." });
+      }
+    } catch {
+      setEnrich({ state: "err", msg: "Couldn’t read that site — fill it in manually." });
+    }
+  }
+
   function submitCompany() {
     if (!form.name.trim()) return;
     const website =
@@ -242,9 +279,11 @@ export default function App() {
         blurb: form.blurb.trim() || "Freshly submitted — awaiting details.",
         gradient: grad,
         ratings: { V: r(), G: r(), D: r() },
+        logoUrl: form.logoUrl || null,
       },
     ]);
-    setForm({ url: "", name: "", cat: "AI Infra", reg: "US", blurb: "" });
+    setForm({ url: "", name: "", cat: "AI Infra", reg: "US", blurb: "", logoUrl: "" });
+    setEnrich({ state: "idle", msg: "" });
     setView("board");
     setBoardQ("ALL");
   }
@@ -500,37 +539,83 @@ export default function App() {
       {view === "profile" && profileId !== null && byId.get(profileId) && (() => {
         const c = byId.get(profileId)!;
         const games = c.ratings.V.games + c.ratings.G.games + c.ratings.D.games;
+        const facts: [string, string | undefined][] = [
+          ["Founded", c.foundedYear ? String(c.foundedYear) : undefined],
+          ["Headquarters", c.headquarters],
+          ["Team size", c.employees],
+          ["Total funding", c.totalFunding],
+          ["Valuation", c.valuation],
+          ["Stage", `${c.stage}-stage`],
+        ];
+        const shownFacts = facts.filter(([, v]) => v);
         return (
           <section>
             <button className="skip" style={{ margin: "0 0 12px" }} onClick={() => setView("board")}>
               ← back to tables
             </button>
-            <div className="form" style={{ padding: 22 }}>
-              <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 12 }}>
-                <Logo c={c} cls="em" />
-                <div>
+            <div className="dossier">
+              <div className="profile-head">
+                <Logo c={c} cls="em-lg" />
+                <div className="profile-id">
                   <h2 className="sec" style={{ margin: 0 }}>
                     {c.name}
                   </h2>
                   <div className="cat">
-                    {c.category} · {c.region} · {c.stage} stage
+                    {c.category} · {c.region} · {c.stage}-stage
                   </div>
+                  <a className="weblink" href={`https://${c.website}`} target="_blank" rel="noreferrer">
+                    {c.website} ↗
+                  </a>
                 </div>
               </div>
-              <p style={{ fontSize: 14, lineHeight: 1.55, marginBottom: 12 }}>{c.blurb}</p>
+
+              {c.tags && c.tags.length > 0 && (
+                <div className="profile-tags">
+                  {c.tags.map((t) => (
+                    <span key={t} className="ptag">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {c.description && <p className="profile-desc">{c.description}</p>}
+
+              {shownFacts.length > 0 && (
+                <div className="facts">
+                  {shownFacts.map(([label, val]) => (
+                    <div className="fact" key={label}>
+                      <div className="fact-l">{label}</div>
+                      <div className="fact-v">{val}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {c.founders && c.founders.length > 0 && (
+                <div className="fact founders">
+                  <div className="fact-l">Founder{c.founders.length > 1 ? "s" : ""}</div>
+                  <div className="fact-v">{c.founders.join(" · ")}</div>
+                </div>
+              )}
+
+              <div className="dossier-sub">📊 ConvictionELO ratings</div>
               <div className="vr">
-                <span className="q">🏆 Overall rank (composite)</span>
+                <span className="q">🏆 Overall rank</span>
                 <span className="p">
                   #{rankOf(c.id, "ALL")} · {composite(c)} Elo
                 </span>
               </div>
-              <div className="segwrap" style={{ marginTop: 10 }}>
+              <div className="rating-cards">
                 {(["V", "G", "D"] as QKey[]).map((q) => (
-                  <div key={q} style={{ flex: 1, textAlign: "center", padding: "6px 4px" }}>
-                    <div style={{ fontWeight: 900, color: "var(--sky)" }}>{c.ratings[q].elo}</div>
-                    <div style={{ fontWeight: 800, fontSize: 12 }}>#{rankOf(c.id, q)}</div>
+                  <div className="rcard" key={q}>
+                    <div className="rc-elo">{c.ratings[q].elo}</div>
+                    <div className="rc-rank">#{rankOf(c.id, q)}</div>
                     <div className="cat">
                       {QUESTIONS[q].emoji} {QUESTIONS[q].label}
+                    </div>
+                    <div className={`rc-conf ${confidence(c, q) === "Established" ? "est" : "prov"}`}>
+                      {confidence(c, q)}
                     </div>
                   </div>
                 ))}
@@ -539,12 +624,31 @@ export default function App() {
                 <span className="q">Total matchups</span>
                 <span className="p">{games}</span>
               </div>
-              <div className="vr">
-                <span className="q">Website</span>
-                <span className="p" style={{ color: "var(--sky)" }}>
-                  {c.website}
-                </span>
+
+              <div className="links-row">
+                <a href={`https://${c.website}`} target="_blank" rel="noreferrer" className="linkbtn">
+                  🌐 Website
+                </a>
+                {c.links?.x && (
+                  <a href={c.links.x} target="_blank" rel="noreferrer" className="linkbtn">
+                    𝕏 X
+                  </a>
+                )}
+                {c.links?.linkedin && (
+                  <a href={c.links.linkedin} target="_blank" rel="noreferrer" className="linkbtn">
+                    in LinkedIn
+                  </a>
+                )}
+                {c.links?.crunchbase && (
+                  <a href={c.links.crunchbase} target="_blank" rel="noreferrer" className="linkbtn">
+                    ◆ Crunchbase
+                  </a>
+                )}
               </div>
+
+              <button className="skip suggest-edit" onClick={() => alert("Suggest-an-edit is coming soon — it will create a pending revision reviewed wiki-style.")}>
+                ✏️ Suggest an edit
+              </button>
             </div>
           </section>
         );
@@ -558,12 +662,52 @@ export default function App() {
           </h2>
           <div className="form">
             <label>Company website</label>
-            <input
-              placeholder="https://acme.ai"
-              value={form.url}
-              onChange={(e) => setForm({ ...form, url: e.target.value })}
-            />
-            <label>Company name</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                placeholder="https://acme.ai"
+                value={form.url}
+                onChange={(e) => setForm({ ...form, url: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void enrichFromUrl();
+                  }
+                }}
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                className="enrichbtn"
+                onClick={() => void enrichFromUrl()}
+                disabled={!form.url.trim() || enrich.state === "loading"}
+              >
+                {enrich.state === "loading" ? "…" : "✨ Auto-fill"}
+              </button>
+            </div>
+            {enrich.state !== "idle" && (
+              <div className={`enrich-status ${enrich.state}`}>
+                {enrich.state === "loading" ? "⏳" : enrich.state === "ok" ? "✓" : "⚠"} {enrich.msg}
+              </div>
+            )}
+            <p className="hint">
+              Paste a URL and we’ll try to fill the name, pitch and logo from the site.
+            </p>
+            <label>
+              Company name
+              {form.logoUrl && (
+                <img
+                  src={form.logoUrl}
+                  alt=""
+                  className="logo-preview"
+                  onLoad={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = "";
+                  }}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              )}
+            </label>
             <input
               placeholder="Acme"
               value={form.name}
