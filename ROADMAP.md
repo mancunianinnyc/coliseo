@@ -28,7 +28,6 @@ community interest move up. See [CONTRIBUTING.md](./CONTRIBUTING.md), and
 - **Confidence-aware ratings (Glicko-2 / rating deviation)** — graduate from raw Elo so new and inactive companies are handled well and noise is damped at scale (the move chess.com and Lichess both made).
 - **Anti-manipulation hardening** — cohort/split analysis over the append-only votes log to detect and discount brigading; per-IP rate limits and stronger uniqueness guarantees.
 - **Wiki-style suggest-edit flow** — community edits to company profiles via the `revisions` table, gated by credibility tier, with full history and reversibility.
-- **Choose a license** — finalize AGPL-3.0 (see note below) and add the `LICENSE` file.
 
 ## ⏳ Later
 - **Public read API** — let third parties build on the data (newsletters, bots, "ConvictionELO for [vertical]").
@@ -49,8 +48,8 @@ Founder accounts, investor verification, deep private-company metrics, a native 
 ---
 
 ### A note on openness
-The plan is to release under **AGPL-3.0** — the license Lichess uses — so the
-project stays open as it grows, while the code and the rating math remain fully
-auditable ("check our math" is a feature for a trust product). The hosted
+The project is released under **[AGPL-3.0](./LICENSE)** — the license Lichess
+uses — so it stays open as it grows, while the code and the rating math remain
+fully auditable ("check our math" is a feature for a trust product). The hosted
 service, live vote data, and brand are what make it sustainable. This is the
 standard open-core split behind projects like PostHog and Supabase.

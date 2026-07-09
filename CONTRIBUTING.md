@@ -69,6 +69,7 @@ manipulated company data) is out of bounds and will be reverted.
 
 ## License
 
-The project is planned to be released under **AGPL-3.0** (see the note in the
-[roadmap](./ROADMAP.md)); the `LICENSE` file is being finalized. Contributions
-will be under the project's license.
+The project is released under **[AGPL-3.0](./LICENSE)** — the same license
+Lichess uses — so it stays open as it grows (see the note in the
+[roadmap](./ROADMAP.md)). By contributing, you agree your contributions are
+licensed under the same terms.
