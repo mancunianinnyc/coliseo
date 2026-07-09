@@ -398,4 +398,35 @@ export const COMPANIES: SeedCompany[] = [
   { n: "Modern Treasury", d: "moderntreasury.com", cat: "Fintech", reg: "US", st: "Growth", p: 2, b: "Payment operations software.", founded: 2018, hq: "San Francisco, USA", tags: ["Fintech", "Payments", "Infrastructure"], cbh: "modern-treasury" },
   { n: "Frubana", d: "frubana.com", cat: "Commerce", reg: "LatAm", st: "Growth", p: 2, b: "B2B marketplace supplying restaurants in LatAm.", founded: 2018, hq: "Bogotá, Colombia", tags: ["Commerce", "B2B", "LatAm"], cbh: "frubana" },
   { n: "Stori", d: "storicard.com", cat: "Fintech", reg: "LatAm", st: "Growth", p: 2, b: "Credit cards for underbanked Mexicans.", founded: 2018, hq: "Mexico City, Mexico", tags: ["Fintech", "Credit", "LatAm"], cbh: "stori" },
+
+  // ---------------- Early-stage (2024+) ----------------
+  // ⚠️ Recent cohort — mostly Y Combinator W25 / F25 companies, founded 2024–25
+  //    and still pre-Growth. Facts (founders, exact founding year, domains) are
+  //    lightly sourced and should be spot-checked in the data-quality pass; most
+  //    have no self-hosted logo yet, so they show the gradient tile until
+  //    `npm run logos:fetch` runs. Prominence is low (1–2) by design.
+  { n: "Browser Use", d: "browser-use.com", cat: "Dev Tools", reg: "US", st: "Early", p: 2, b: "Open-source browser automation for AI agents.", founded: 2024, hq: "San Francisco, USA", fo: ["Magnus Müller", "Gregor Žunič"], tags: ["Developer Tools", "AI Agents", "Open Source"] },
+  { n: "Abundant", d: "abundant.ai", cat: "AI", reg: "US", st: "Early", p: 1, b: "Human oversight for AI agents (agent teleoperation).", founded: 2024, hq: "San Francisco, USA", tags: ["AI Agents", "Automation"] },
+  { n: "Pickle", d: "getpickle.ai", cat: "AI", reg: "US", st: "Early", p: 2, b: "Real-time AI video clones for video calls.", founded: 2024, hq: "San Francisco, USA", tags: ["Artificial Intelligence", "Video"] },
+  { n: "Red Barn Robotics", d: "redbarnrobotics.com", cat: "Robotics", reg: "US", st: "Early", p: 2, b: "Autonomous weeding robots for farms.", founded: 2024, hq: "USA", tags: ["Robotics", "AgTech"] },
+  { n: "Splash", d: "splash9.com", cat: "Space & Defense", reg: "US", st: "Early", p: 2, b: "Autonomous patrol boats for maritime border security.", founded: 2024, hq: "USA", tags: ["Defense", "Autonomy", "Maritime"] },
+  { n: "GradeWiz", d: "gradewiz.ai", cat: "Edtech", reg: "US", st: "Early", p: 1, b: "AI grading assistant for teaching teams.", founded: 2024, hq: "USA", tags: ["Edtech", "Artificial Intelligence"] },
+  { n: "Rebolt", d: "rebolt.ai", cat: "AI", reg: "US", st: "Early", p: 1, b: "AI agents that automate restaurant operations.", founded: 2024, hq: "San Francisco, USA", tags: ["Artificial Intelligence", "Agents", "Restaurants"] },
+  { n: "Multifactor", d: "multifactor.com", cat: "Security", reg: "US", st: "Early", p: 1, b: "Zero-trust authentication for AI agents.", founded: 2025, hq: "USA", tags: ["Security", "AI Agents"] },
+  { n: "Lightberry", d: "lightberry.com", cat: "Robotics", reg: "US", st: "Early", p: 1, b: "Natural-interaction software for humanoid robots.", founded: 2025, hq: "USA", fo: ["Ali Attar", "Stephan Koenigstorfer"], tags: ["Robotics", "Artificial Intelligence"] },
+  { n: "Metorial", d: "metorial.com", cat: "Dev Tools", reg: "US", st: "Early", p: 1, b: "Serverless runtime for MCP servers.", founded: 2025, hq: "USA", tags: ["Developer Tools", "AI Infrastructure"] },
+  { n: "Unsiloed AI", d: "unsiloed.ai", cat: "Data & Infra", reg: "US", st: "Early", p: 1, b: "APIs that turn unstructured enterprise data into structured data.", founded: 2025, hq: "USA", tags: ["Data", "Artificial Intelligence"] },
+  { n: "Hyperspell", d: "hyperspell.com", cat: "Data & Infra", reg: "US", st: "Early", p: 1, b: "A memory & context layer for AI agents.", founded: 2025, hq: "USA", tags: ["AI Infrastructure", "Agents"] },
+  { n: "Dome", d: "domeapi.io", cat: "Fintech", reg: "US", st: "Early", p: 2, b: "A unified API for prediction-market trading.", founded: 2025, hq: "USA", fo: ["Kurush Dubash", "Kunal Roy"], tags: ["Fintech", "Prediction Markets", "API"] },
+  { n: "Hypercubic", d: "hypercubic.ai", cat: "Dev Tools", reg: "US", st: "Early", p: 1, b: "AI that modernizes COBOL & mainframe systems.", founded: 2025, hq: "USA", tags: ["Enterprise", "Artificial Intelligence", "Legacy Modernization"] },
+  { n: "Parrot", d: "parrotapp.com", cat: "Edtech", reg: "US", st: "Early", p: 1, b: "Short-form video for language learning.", founded: 2025, hq: "USA", tags: ["Edtech", "Consumer", "Video"] },
+  { n: "Nucleo", d: "nucleoresearch.com", cat: "Health", reg: "US", st: "Early", p: 1, b: "Automated CT-scan analysis for oncology.", founded: 2025, hq: "USA", tags: ["Health", "Artificial Intelligence", "Medical Imaging"] },
+  { n: "Boom AI", d: "useboom.ai", cat: "Commerce", reg: "US", st: "Early", p: 1, b: "AI growth assistant for e-commerce brands.", founded: 2025, hq: "USA", tags: ["Commerce", "Artificial Intelligence", "Marketing"] },
+  // LatAm early-stage (recent seed cohort — verify founding years; a couple are
+  // 2023-vintage, as reliable 2024-founded LatAm names with public data are thin).
+  { n: "Vambe", d: "vambe.ai", cat: "AI", reg: "LatAm", st: "Early", p: 1, b: "AI sales agents that sell over WhatsApp.", founded: 2023, hq: "Santiago, Chile", tags: ["Artificial Intelligence", "Sales", "LatAm"] },
+  { n: "Magie", d: "magie.com.br", cat: "Fintech", reg: "LatAm", st: "Early", p: 1, b: "An AI money assistant that lives inside WhatsApp.", founded: 2023, hq: "Brazil", tags: ["Fintech", "Artificial Intelligence", "LatAm"] },
+  { n: "Morada AI", d: "morada.ai", cat: "Proptech", reg: "LatAm", st: "Early", p: 1, b: "AI chat assistant for real-estate listings.", hq: "São Paulo, Brazil", tags: ["Proptech", "Artificial Intelligence", "LatAm"] },
+  { n: "Salvy", d: "salvy.com.br", cat: "SaaS", reg: "LatAm", st: "Early", p: 1, b: "A mobile carrier built for businesses.", founded: 2023, hq: "São Paulo, Brazil", tags: ["Telecom", "SaaS", "LatAm"] },
+  { n: "Nutrico", d: "nutrico.io", cat: "AI", reg: "LatAm", st: "Early", p: 1, b: "AI copilot for food & beverage R&D.", hq: "Lima, Peru", tags: ["Artificial Intelligence", "Food", "LatAm"] },
 ];

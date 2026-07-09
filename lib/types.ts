@@ -9,7 +9,7 @@ export interface Rating {
   seasonStart: number;
 }
 
-export type Stage = "Growth" | "Late";
+export type Stage = "Early" | "Growth" | "Late";
 
 // Lifecycle: "active" companies are in the arena; the rest have "graduated"
 // (left the arena) and are archived — kept for their profile + history but

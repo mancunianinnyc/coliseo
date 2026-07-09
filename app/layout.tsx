@@ -2,12 +2,13 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ConvictionELO",
+  title: "ConvictionELO — Crowd-ranked startup leaderboard & discovery",
   description:
-    "A daily game where people vote on head-to-head startup matchups. Build your conviction.",
+    "Startup discovery, ranked by conviction. Vote on head-to-head startup matchups across Value, Growth & Workplace — discover companies you didn't know, and see how the crowd really ranks them.",
   openGraph: {
-    title: "ConvictionELO",
-    description: "Vote on which startup wins on Value, Growth, or Workplace.",
+    title: "ConvictionELO — Startup discovery, ranked by conviction",
+    description:
+      "Vote on head-to-head startup matchups across Value, Growth & Workplace — discover new companies and see how the crowd ranks them.",
   },
 };
 

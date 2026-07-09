@@ -8,6 +8,7 @@ import { CATEGORIES, REGIONS } from "@/lib/companies.data";
 import { useSession } from "@/lib/auth";
 import { loadProfile, saveStreak } from "@/lib/profile";
 import { castVote } from "@/lib/castVote";
+import { submitCompany } from "@/lib/submitCompany";
 import { flagUnknown } from "@/lib/unknowns";
 import {
   applyElo,
@@ -23,7 +24,9 @@ import {
 
 type View = "vote" | "done" | "board" | "profile" | "submit";
 type BoardQ = QKey | "ALL";
-type Dim = "category" | "region" | "stage";
+
+// The three arena stage tiers, in progression order — the Tables' stage filter.
+const STAGES = ["Early", "Growth", "Late"] as const;
 
 function Logo({ c, cls }: { c: Company; cls: string }) {
   return (
@@ -72,18 +75,31 @@ export default function App() {
   }>(null);
   const [todaysPicks, setTodaysPicks] = useState<Pick[]>([]);
   const [boardQ, setBoardQ] = useState<BoardQ>("ALL");
-  const [dim, setDim] = useState<Dim>("category");
-  const [filter, setFilter] = useState<string>("All");
+  // Independent multi-axis Tables filters (category AND region AND stage), each
+  // defaulting to "All". They live behind the Filter sheet so the default board
+  // stays clean: Overall · All companies · Global.
+  const [catFilter, setCatFilter] = useState<string>("All");
+  const [regFilter, setRegFilter] = useState<string>("All");
+  const [stageFilter, setStageFilter] = useState<string>("All");
+  const [showFilters, setShowFilters] = useState(false);
   const [showGrads, setShowGrads] = useState(false);
   // The leaderboard is gated behind completing today's 3 picks. Persisted via
   // the profile's last_active_date, so it stays unlocked on refresh for the day.
   const [doneToday, setDoneToday] = useState(false);
   const [profileId, setProfileId] = useState<number | null>(null);
+  // A company being "peeked" from the vote flow — a read-only dossier shown in a
+  // bottom sheet so you can learn about a company you don't recognise WITHOUT
+  // leaving the matchup (no vote cast, pair/pickIndex untouched).
+  const [peekId, setPeekId] = useState<number | null>(null);
   const [form, setForm] = useState({ url: "", name: "", cat: "AI", reg: "US", blurb: "", logoUrl: "" });
   const [enrich, setEnrich] = useState<{ state: "idle" | "loading" | "ok" | "err"; msg: string }>({
     state: "idle",
     msg: "",
   });
+  const [submitState, setSubmitState] = useState<{
+    state: "idle" | "loading" | "ok" | "err";
+    msg: string;
+  }>({ state: "idle", msg: "" });
 
   useEffect(() => {
     let cancelled = false;
@@ -131,10 +147,6 @@ export default function App() {
   const [a, b] = pair;
   const A = byId.get(a);
   const B = byId.get(b);
-
-  function keyFor(d: Dim): keyof Company {
-    return d === "category" ? "category" : d === "region" ? "region" : "stage";
-  }
 
   function nearestPair(list: Company[], qk: QKey): [number, number] {
     const arena = list.filter(isActive);
@@ -295,32 +307,78 @@ export default function App() {
     }
   }
 
-  function submitCompany() {
-    if (!form.name.trim()) return;
-    const website =
-      form.url.trim().replace(/^https?:\/\//, "").replace(/\/.*/, "") || "example.com";
-    const id = Math.max(0, ...companies.map((c) => c.id)) + 1;
-    const grad = "linear-gradient(135deg,#0eb6a6,#37b6ff)";
-    const r = () => ({ elo: 1500, games: 0, weekMovement: 0, seasonStart: 1500 });
-    setCompanies([
-      ...companies,
-      {
-        id,
-        name: form.name.trim(),
-        website,
-        category: form.cat,
-        region: form.reg,
-        stage: "Growth",
-        blurb: form.blurb.trim() || "Freshly submitted — awaiting details.",
-        gradient: grad,
-        ratings: { V: r(), G: r(), D: r() },
-        logoUrl: form.logoUrl || null,
-      },
-    ]);
-    setForm({ url: "", name: "", cat: "AI", reg: "US", blurb: "", logoUrl: "" });
-    setEnrich({ state: "idle", msg: "" });
-    setView("board");
-    setBoardQ("ALL");
+  // Submit a company for review. Persists via the server-authoritative
+  // submit_company RPC — the company lands as status='pending' and enters the
+  // arena only once an admin approves it (moderation is done in the Supabase
+  // dashboard for now; there's no in-app admin role yet). With no backend
+  // configured (local demo) we fall back to an optimistic local add so the flow
+  // still works offline.
+  async function handleSubmitCompany() {
+    const name = form.name.trim();
+    if (!name) {
+      setSubmitState({ state: "err", msg: "A company name is required." });
+      return;
+    }
+    const website = form.url.trim().replace(/^https?:\/\//, "").replace(/\/.*/, "");
+    if (!website) {
+      setSubmitState({ state: "err", msg: "A company website is required." });
+      return;
+    }
+
+    setSubmitState({ state: "loading", msg: "Submitting…" });
+    const outcome = await submitCompany({
+      name,
+      website,
+      category: form.cat,
+      region: form.reg,
+      blurb: form.blurb.trim() || undefined,
+      logoUrl: form.logoUrl || undefined,
+    });
+
+    if (outcome.ok) {
+      setSubmitState({
+        state: "ok",
+        msg: `“${name}” submitted for review — it’ll enter the arena once approved.`,
+      });
+      setForm({ url: "", name: "", cat: "AI", reg: "US", blurb: "", logoUrl: "" });
+      setEnrich({ state: "idle", msg: "" });
+      return;
+    }
+
+    if (outcome.noBackend) {
+      // Local demo (no Supabase): add optimistically so the flow is visible.
+      // Not persisted anywhere — resets on refresh.
+      const id = Math.max(0, ...companies.map((c) => c.id)) + 1;
+      const grad = "linear-gradient(135deg,#0eb6a6,#37b6ff)";
+      const r = () => ({ elo: 1500, games: 0, weekMovement: 0, seasonStart: 1500 });
+      setCompanies([
+        ...companies,
+        {
+          id,
+          name,
+          website,
+          category: form.cat,
+          region: form.reg,
+          stage: "Growth",
+          blurb: form.blurb.trim() || "Freshly submitted — awaiting details.",
+          gradient: grad,
+          ratings: { V: r(), G: r(), D: r() },
+          logoUrl: form.logoUrl || null,
+        },
+      ]);
+      setForm({ url: "", name: "", cat: "AI", reg: "US", blurb: "", logoUrl: "" });
+      setEnrich({ state: "idle", msg: "" });
+      setSubmitState({
+        state: "ok",
+        msg: `“${name}” added locally — demo mode, no backend configured.`,
+      });
+      return;
+    }
+
+    setSubmitState({
+      state: "err",
+      msg: outcome.error || "Something went wrong — please try again.",
+    });
   }
 
   // Rankings are computed over active companies only — graduates don't hold a rank.
@@ -330,7 +388,153 @@ export default function App() {
   );
   const rankOf = (id: number, qk: BoardQ) => ranked(qk).findIndex((c) => c.id === id) + 1;
 
+  // The rows shown in the Tables: ranked by the chosen dimension, then narrowed
+  // by the active filters (category AND region AND stage). Rank shown is the
+  // position within the current view, so a filtered table reads "#1 in Fintech".
+  const activeFilterCount =
+    (catFilter !== "All" ? 1 : 0) + (regFilter !== "All" ? 1 : 0) + (stageFilter !== "All" ? 1 : 0);
+  const tableRows = useMemo(
+    () =>
+      ranked(boardQ).filter(
+        (c) =>
+          (catFilter === "All" || c.category === catFilter) &&
+          (regFilter === "All" || c.region === regFilter) &&
+          (stageFilter === "All" || c.stage === stageFilter),
+      ),
+    [ranked, boardQ, catFilter, regFilter, stageFilter],
+  );
+
   // ---------- render helpers ----------
+  // The full company dossier body, shared by the Profile view and the vote-flow
+  // peek sheet so both stay in sync. Caller supplies the surrounding chrome
+  // (the .dossier card, a back button / a close button, etc.).
+  const DossierBody = ({ c }: { c: Company }) => {
+    const games = c.ratings.V.games + c.ratings.G.games + c.ratings.D.games;
+    const facts: [string, string | undefined][] = [
+      ["Founded", c.foundedYear ? String(c.foundedYear) : undefined],
+      ["Headquarters", c.headquarters],
+      ["Team size", c.employees],
+      ["Total funding", c.totalFunding],
+      ["Valuation", c.valuation],
+      ["Stage", `${c.stage}-stage`],
+    ];
+    const shownFacts = facts.filter(([, v]) => v);
+    return (
+      <>
+        <div className="profile-head">
+          <Logo c={c} cls="em-lg" />
+          <div className="profile-id">
+            <h2 className="sec" style={{ margin: 0 }}>
+              {c.name}
+            </h2>
+            <div className="cat">
+              {c.category} · {c.region} · {c.stage}-stage
+            </div>
+            <a className="weblink" href={`https://${c.website}`} target="_blank" rel="noreferrer">
+              {c.website} ↗
+            </a>
+          </div>
+        </div>
+
+        {!isActive(c) && (
+          <div className="grad-banner">
+            🎓 Graduated{c.exitNote ? ` — ${c.exitNote}` : ""}. No longer in the arena; final
+            rating shown below.
+          </div>
+        )}
+
+        {c.tags && c.tags.length > 0 && (
+          <div className="profile-tags">
+            {c.tags.map((t) => (
+              <span key={t} className="ptag">
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {(c.description || c.blurb) && <p className="profile-desc">{c.description || c.blurb}</p>}
+
+        {shownFacts.length > 0 && (
+          <div className="facts">
+            {shownFacts.map(([label, val]) => (
+              <div className="fact" key={label}>
+                <div className="fact-l">{label}</div>
+                <div className="fact-v">{val}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {c.founders && c.founders.length > 0 && (
+          <div className="fact founders">
+            <div className="fact-l">Founder{c.founders.length > 1 ? "s" : ""}</div>
+            <div className="fact-v">{c.founders.join(" · ")}</div>
+          </div>
+        )}
+
+        <div className="dossier-sub">📊 ConvictionELO ratings</div>
+        <div className="vr">
+          <span className="q">🏆 Overall {isActive(c) ? "rank" : "(final)"}</span>
+          <span className="p">
+            {isActive(c) ? `#${rankOf(c.id, "ALL")} · ` : ""}
+            {composite(c)} Elo
+          </span>
+        </div>
+        <div className="rating-cards">
+          {(["V", "G", "D"] as QKey[]).map((q) => (
+            <div className="rcard" key={q}>
+              <div className="rc-elo">{c.ratings[q].elo}</div>
+              <div className="rc-rank">{isActive(c) ? `#${rankOf(c.id, q)}` : "—"}</div>
+              <div className="cat">
+                {QUESTIONS[q].emoji} {QUESTIONS[q].label}
+              </div>
+              <div className={`rc-conf ${confidence(c, q) === "Established" ? "est" : "prov"}`}>
+                {confidence(c, q)}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="vr">
+          <span className="q">Total matchups</span>
+          <span className="p">{games}</span>
+        </div>
+
+        <div className="links-row">
+          <a href={`https://${c.website}`} target="_blank" rel="noreferrer" className="linkbtn">
+            🌐 Website
+          </a>
+          {c.links?.x && (
+            <a href={c.links.x} target="_blank" rel="noreferrer" className="linkbtn">
+              𝕏 X
+            </a>
+          )}
+          {c.links?.linkedin && (
+            <a href={c.links.linkedin} target="_blank" rel="noreferrer" className="linkbtn">
+              in LinkedIn
+            </a>
+          )}
+          {c.links?.crunchbase && (
+            <a href={c.links.crunchbase} target="_blank" rel="noreferrer" className="linkbtn">
+              ◆ Crunchbase
+            </a>
+          )}
+        </div>
+
+        <button
+          className="skip suggest-edit"
+          onClick={() =>
+            alert(
+              "Suggest-an-edit is coming soon — it will create a pending revision reviewed wiki-style.",
+            )
+          }
+        >
+          ✏️ Suggest an edit
+        </button>
+      </>
+    );
+  };
+
   const Fighter = ({ c, side }: { c: Company; side: "A" | "B" }) => {
     const selected = decided && decided.winSide === side;
     const delta = decided ? (side === "A" ? decided.dA : decided.dB) : 0;
@@ -349,6 +553,18 @@ export default function App() {
             {c.category} · {c.region} · {c.stage}
           </div>
           <div className="blurb">{c.blurb}</div>
+          <button
+            type="button"
+            className="peek-tag"
+            title={`Learn more about ${c.name}`}
+            aria-label={`Learn more about ${c.name}`}
+            onClick={(e) => {
+              e.stopPropagation(); // don't cast a vote — just open the dossier
+              setPeekId(c.id);
+            }}
+          >
+            ⓘ <span>learn more</span>
+          </button>
         </div>
         <div className="f-score">
           {decided ? (
@@ -391,8 +607,11 @@ export default function App() {
   return (
     <div className="wrap">
       <header className="top">
-        <div className="logo">
-          <span className="spark">⚡</span> Conviction<b>ELO</b>
+        <div className="brand">
+          <div className="logo">
+            <span className="spark">⚡</span> Conviction<b>ELO</b>
+          </div>
+          <div className="tagline">Startup discovery, ranked by conviction</div>
         </div>
         <div className="cred">
           <div className="tier" style={{ background: tier.color }}>
@@ -568,37 +787,54 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              <div className="segwrap">
-                {(["category", "region", "stage"] as Dim[]).map((d) => (
-                  <button
-                    key={d}
-                    className={dim === d ? "active" : ""}
-                    onClick={() => {
-                      setDim(d);
-                      setFilter("All");
-                    }}
-                  >
-                    By {d}
-                  </button>
-                ))}
-              </div>
-              <div className="lbtabs">
-                {["All", ...Array.from(new Set(activeCompanies.map((c) => c[keyFor(dim)] as string)))].map(
-                  (o) => (
-                    <button
-                      key={o}
-                      className={`chip tab ${o === filter ? "active" : ""}`}
-                      onClick={() => setFilter(o)}
-                    >
-                      {o === "All" ? "🌍 Global" : o}
-                    </button>
-                  ),
-                )}
+              <div className="filterbar">
+                <div className="filter-tags">
+                  {activeFilterCount === 0 ? (
+                    <span className="filter-none">🌍 All companies · Global</span>
+                  ) : (
+                    <>
+                      {stageFilter !== "All" && (
+                        <button className="fpill" onClick={() => setStageFilter("All")}>
+                          {stageFilter}-stage <span aria-hidden>✕</span>
+                        </button>
+                      )}
+                      {regFilter !== "All" && (
+                        <button className="fpill" onClick={() => setRegFilter("All")}>
+                          {regFilter} <span aria-hidden>✕</span>
+                        </button>
+                      )}
+                      {catFilter !== "All" && (
+                        <button className="fpill" onClick={() => setCatFilter("All")}>
+                          {catFilter} <span aria-hidden>✕</span>
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+                <button
+                  className={`filter-btn ${activeFilterCount > 0 ? "on" : ""}`}
+                  onClick={() => setShowFilters(true)}
+                >
+                  ⚙ Filter{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ""}
+                </button>
               </div>
               <div>
-                {ranked(boardQ)
-                  .filter((c) => filter === "All" || (c[keyFor(dim)] as string) === filter)
-                  .map((c, i) => {
+                {tableRows.length === 0 ? (
+                  <p className="note" style={{ textAlign: "center", padding: "22px 0" }}>
+                    No companies match these filters.{" "}
+                    <button
+                      className="linklike"
+                      onClick={() => {
+                        setCatFilter("All");
+                        setRegFilter("All");
+                        setStageFilter("All");
+                      }}
+                    >
+                      Clear filters
+                    </button>
+                  </p>
+                ) : (
+                  tableRows.map((c, i) => {
                     const wk = boardQ === "ALL" ? compositeMovement(c) : c.ratings[boardQ].weekMovement;
                     const cls = wk > 0 ? "up" : wk < 0 ? "down" : "flat";
                     return (
@@ -626,7 +862,8 @@ export default function App() {
                         </div>
                       </div>
                     );
-                  })}
+                  })
+                )}
               </div>
             </>
           )}
@@ -634,133 +871,16 @@ export default function App() {
       )}
 
       {/* PROFILE */}
-      {view === "profile" && profileId !== null && byId.get(profileId) && (() => {
-        const c = byId.get(profileId)!;
-        const games = c.ratings.V.games + c.ratings.G.games + c.ratings.D.games;
-        const facts: [string, string | undefined][] = [
-          ["Founded", c.foundedYear ? String(c.foundedYear) : undefined],
-          ["Headquarters", c.headquarters],
-          ["Team size", c.employees],
-          ["Total funding", c.totalFunding],
-          ["Valuation", c.valuation],
-          ["Stage", `${c.stage}-stage`],
-        ];
-        const shownFacts = facts.filter(([, v]) => v);
-        return (
-          <section>
-            <button className="skip" style={{ margin: "0 0 12px" }} onClick={() => setView("board")}>
-              ← back to tables
-            </button>
-            <div className="dossier">
-              <div className="profile-head">
-                <Logo c={c} cls="em-lg" />
-                <div className="profile-id">
-                  <h2 className="sec" style={{ margin: 0 }}>
-                    {c.name}
-                  </h2>
-                  <div className="cat">
-                    {c.category} · {c.region} · {c.stage}-stage
-                  </div>
-                  <a className="weblink" href={`https://${c.website}`} target="_blank" rel="noreferrer">
-                    {c.website} ↗
-                  </a>
-                </div>
-              </div>
-
-              {!isActive(c) && (
-                <div className="grad-banner">
-                  🎓 Graduated{c.exitNote ? ` — ${c.exitNote}` : ""}. No longer in the arena; final
-                  rating shown below.
-                </div>
-              )}
-
-              {c.tags && c.tags.length > 0 && (
-                <div className="profile-tags">
-                  {c.tags.map((t) => (
-                    <span key={t} className="ptag">
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {(c.description || c.blurb) && (
-                <p className="profile-desc">{c.description || c.blurb}</p>
-              )}
-
-              {shownFacts.length > 0 && (
-                <div className="facts">
-                  {shownFacts.map(([label, val]) => (
-                    <div className="fact" key={label}>
-                      <div className="fact-l">{label}</div>
-                      <div className="fact-v">{val}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {c.founders && c.founders.length > 0 && (
-                <div className="fact founders">
-                  <div className="fact-l">Founder{c.founders.length > 1 ? "s" : ""}</div>
-                  <div className="fact-v">{c.founders.join(" · ")}</div>
-                </div>
-              )}
-
-              <div className="dossier-sub">📊 ConvictionELO ratings</div>
-              <div className="vr">
-                <span className="q">🏆 Overall {isActive(c) ? "rank" : "(final)"}</span>
-                <span className="p">
-                  {isActive(c) ? `#${rankOf(c.id, "ALL")} · ` : ""}
-                  {composite(c)} Elo
-                </span>
-              </div>
-              <div className="rating-cards">
-                {(["V", "G", "D"] as QKey[]).map((q) => (
-                  <div className="rcard" key={q}>
-                    <div className="rc-elo">{c.ratings[q].elo}</div>
-                    <div className="rc-rank">{isActive(c) ? `#${rankOf(c.id, q)}` : "—"}</div>
-                    <div className="cat">
-                      {QUESTIONS[q].emoji} {QUESTIONS[q].label}
-                    </div>
-                    <div className={`rc-conf ${confidence(c, q) === "Established" ? "est" : "prov"}`}>
-                      {confidence(c, q)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="vr">
-                <span className="q">Total matchups</span>
-                <span className="p">{games}</span>
-              </div>
-
-              <div className="links-row">
-                <a href={`https://${c.website}`} target="_blank" rel="noreferrer" className="linkbtn">
-                  🌐 Website
-                </a>
-                {c.links?.x && (
-                  <a href={c.links.x} target="_blank" rel="noreferrer" className="linkbtn">
-                    𝕏 X
-                  </a>
-                )}
-                {c.links?.linkedin && (
-                  <a href={c.links.linkedin} target="_blank" rel="noreferrer" className="linkbtn">
-                    in LinkedIn
-                  </a>
-                )}
-                {c.links?.crunchbase && (
-                  <a href={c.links.crunchbase} target="_blank" rel="noreferrer" className="linkbtn">
-                    ◆ Crunchbase
-                  </a>
-                )}
-              </div>
-
-              <button className="skip suggest-edit" onClick={() => alert("Suggest-an-edit is coming soon — it will create a pending revision reviewed wiki-style.")}>
-                ✏️ Suggest an edit
-              </button>
-            </div>
-          </section>
-        );
-      })()}
+      {view === "profile" && profileId !== null && byId.get(profileId) && (
+        <section>
+          <button className="skip" style={{ margin: "0 0 12px" }} onClick={() => setView("board")}>
+            ← back to tables
+          </button>
+          <div className="dossier">
+            <DossierBody c={byId.get(profileId)!} />
+          </div>
+        </section>
+      )}
 
       {/* SUBMIT */}
       {view === "submit" && (
@@ -864,15 +984,137 @@ export default function App() {
               value={form.blurb}
               onChange={(e) => setForm({ ...form, blurb: e.target.value })}
             />
-            <button className="submitbtn" onClick={submitCompany}>
-              Add to the arena →
+            <button
+              className="submitbtn"
+              onClick={() => void handleSubmitCompany()}
+              disabled={submitState.state === "loading"}
+            >
+              {submitState.state === "loading" ? "Submitting…" : "Submit for review →"}
             </button>
+            {submitState.state !== "idle" && submitState.state !== "loading" && (
+              <div className={`enrich-status ${submitState.state}`}>
+                {submitState.state === "ok" ? "✓" : "⚠"} {submitState.msg}
+              </div>
+            )}
           </div>
           <p className="note">
-            In the real app this creates a <b>pending</b> profile reviewed wiki-style before going
-            live.
+            Submissions are created as <b>pending</b> and reviewed before they enter the arena.
           </p>
         </section>
+      )}
+
+      {/* FILTER SHEET — the Tables' category / region / stage facets, tucked
+          into a bottom sheet so the default board stays clean (Overall · All
+          companies · Global). Filters are independent (AND) and apply live. */}
+      {showFilters && (
+        <div
+          className="peek-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Filter the Tables"
+          onClick={() => setShowFilters(false)}
+        >
+          <div className="peek-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="peek-grab" />
+            <button className="peek-close" aria-label="Close" onClick={() => setShowFilters(false)}>
+              ✕
+            </button>
+            <div className="peek-scroll filter-sheet">
+              <div className="filter-sheet-head">
+                <h3 className="sec" style={{ margin: 0 }}>
+                  Filter the Tables
+                </h3>
+                {activeFilterCount > 0 && (
+                  <button
+                    className="filter-reset"
+                    onClick={() => {
+                      setCatFilter("All");
+                      setRegFilter("All");
+                      setStageFilter("All");
+                    }}
+                  >
+                    Reset all
+                  </button>
+                )}
+              </div>
+
+              <div className="filter-group">
+                <div className="filter-label">Stage</div>
+                <div className="lbtabs">
+                  {["All", ...STAGES].map((o) => (
+                    <button
+                      key={o}
+                      className={`chip tab ${o === stageFilter ? "active" : ""}`}
+                      onClick={() => setStageFilter(o)}
+                    >
+                      {o === "All" ? "All stages" : o}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="filter-group">
+                <div className="filter-label">Region</div>
+                <div className="lbtabs">
+                  {["All", ...REGIONS].map((o) => (
+                    <button
+                      key={o}
+                      className={`chip tab ${o === regFilter ? "active" : ""}`}
+                      onClick={() => setRegFilter(o)}
+                    >
+                      {o === "All" ? "🌍 Global" : o}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="filter-group">
+                <div className="filter-label">Category</div>
+                <div className="lbtabs">
+                  {["All", ...CATEGORIES].map((o) => (
+                    <button
+                      key={o}
+                      className={`chip tab ${o === catFilter ? "active" : ""}`}
+                      onClick={() => setCatFilter(o)}
+                    >
+                      {o === "All" ? "All companies" : o}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button className="submitbtn filter-done" onClick={() => setShowFilters(false)}>
+                Show {tableRows.length} result{tableRows.length === 1 ? "" : "s"} →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PEEK — read-only dossier for a company you don't recognise, shown as a
+          bottom sheet over the vote flow. Closing it returns you to the exact
+          same matchup; no vote is cast. */}
+      {peekId !== null && byId.get(peekId) && (
+        <div
+          className="peek-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`About ${byId.get(peekId)!.name}`}
+          onClick={() => setPeekId(null)}
+        >
+          <div className="peek-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="peek-grab" />
+            <button className="peek-close" aria-label="Close" onClick={() => setPeekId(null)}>
+              ✕
+            </button>
+            <div className="peek-scroll">
+              <div className="peek-eyebrow">ⓘ Learning about — you haven&apos;t voted</div>
+              <div className="dossier peek-dossier">
+                <DossierBody c={byId.get(peekId)!} />
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       <footer className="site-footer">
