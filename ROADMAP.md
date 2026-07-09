@@ -35,6 +35,7 @@ gating the first release.
 ## 🔜 Next — a credible MVP (what a small group needs)
 - **Ship it live** — production deploy (with a preview/staging environment) so the app can be played and iterated on for real.
 - **Data-quality pass** — verify the hand-seeded 255 (founders, funding, HQ, logos, dead links) so the rankings start from trustworthy facts.
+- **First-run onboarding** — a lightweight one-time pop-up that explains the high-level flow as simply as possible on a user's first visit (what the daily 3 picks are, that each vote moves a live rating across Value / Growth / Workplace, and that completing the day unlocks the leaderboard). Dismissible, shown once, and skippable — comprehension in the first 10 seconds is what turns a curious visitor into a returning player.
 - **Submission moderation** — a simple approve/reject path for pending submissions (dashboard-driven for now; an in-app admin role comes later, when volume needs it).
 - **Wiki-style suggest-edit flow** — community edits to company profiles via the `revisions` table, gated by credibility tier, with full history and reversibility.
 

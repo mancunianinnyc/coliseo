@@ -717,9 +717,11 @@ export default function App() {
           <button className="nextbtn" onClick={() => setView("board")} style={{ marginTop: 6 }}>
             🏆 See the leaderboard →
           </button>
-          <button className="simday" onClick={simDay} style={{ marginTop: 10 }}>
-            ▶ Simulate tomorrow
-          </button>
+          {process.env.NODE_ENV !== "production" && (
+            <button className="simday" onClick={simDay} style={{ marginTop: 10 }}>
+              ▶ Simulate tomorrow
+            </button>
+          )}
         </section>
       )}
 
