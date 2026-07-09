@@ -49,24 +49,27 @@ body {
 .qbar h1 { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: clamp(23px, 5.6vw, 32px); line-height: 1.12; margin-top: 8px; letter-spacing: -.4px; text-wrap: balance; }
 .qbar h1 span { background: linear-gradient(90deg, var(--coral), var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
+/* Vote arena — side-by-side vertical cards on wider screens; the mobile media
+   query below restacks them into compact horizontal cards. */
 .arena { display: grid; grid-template-columns: 1fr 54px 1fr; gap: 10px; align-items: stretch; }
 .fighter { background: var(--card); border: 1.5px solid var(--line); border-radius: 22px; padding: 20px 16px; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; transition: .18s; position: relative; overflow: hidden; box-shadow: var(--shadow-sm); }
 .fighter:hover { transform: translateY(-4px); border-color: var(--teal); box-shadow: var(--shadow); }
-.fighter.win { border-color: var(--mint); }
-.emoji { position: relative; width: 74px; height: 74px; border-radius: 20px; display: grid; place-items: center; font-size: 34px; font-weight: 800; color: #fff; overflow: hidden; }
+.fighter.win { border-color: var(--mint); box-shadow: 0 0 0 2px var(--mint) inset, var(--shadow); }
+.emoji { position: relative; width: 74px; height: 74px; border-radius: 20px; display: grid; place-items: center; font-size: 34px; font-weight: 800; color: #fff; overflow: hidden; flex-shrink: 0; }
 .emoji img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 13px; background: #fff; }
+.f-info { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
 .fighter .nm { font-weight: 800; font-size: 18px; letter-spacing: -.3px; }
 .fighter .cat { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 800; }
-.fighter .blurb { font-size: 12.5px; color: var(--muted); line-height: 1.4; min-height: 34px; }
-.fighter .elo { font-size: 13px; font-weight: 800; color: var(--sky); }
-.tag { position: absolute; top: 10px; right: 10px; font-size: 9px; font-weight: 800; padding: 3px 7px; border-radius: 999px; text-transform: uppercase; letter-spacing: .5px; }
-.tag.prov { background: rgba(255, 182, 56, .18); color: #b9791a; }
-.tag.est { background: rgba(34, 201, 160, .16); color: #12805f; }
-.delta { font-size: 12px; font-weight: 800; height: 14px; }
+.fighter .blurb { font-size: 13px; color: var(--muted); line-height: 1.45; }
+.f-score { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.fighter .elo { font-size: 14px; font-weight: 800; color: var(--sky); }
+.delta { font-size: 12.5px; font-weight: 800; }
 .delta.up { color: var(--mint); } .delta.down { color: var(--red); }
+.dunno-tag { background: var(--soft); border: 1px solid var(--line); color: var(--muted); font-size: 11px; font-weight: 700; padding: 6px 11px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; min-height: 32px; white-space: nowrap; }
+.dunno-tag:hover { border-color: var(--gold); color: var(--ink); }
 .vs { display: grid; place-items: center; }
-.vs .orb { width: 44px; height: 44px; border-radius: 50%; background: var(--card); border: 1.5px solid var(--line); box-shadow: var(--shadow-sm); display: grid; place-items: center; font-weight: 900; font-style: italic; color: var(--muted); font-size: 15px; }
+.vs .orb { width: 44px; height: 44px; border-radius: 50%; background: var(--card); border: 1.5px solid var(--line); box-shadow: var(--shadow-sm); display: grid; place-items: center; font-weight: 900; font-style: italic; color: var(--muted); font-size: 15px; z-index: 1; }
 
 .subq { display: flex; justify-content: center; gap: 8px; margin: 16px 0 6px; flex-wrap: wrap; }
 .chip { background: var(--card); border: 1px solid var(--line); color: var(--muted); font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 999px; box-shadow: var(--shadow-sm); }
@@ -175,6 +178,28 @@ nav.bottom button.active { color: var(--teal2); }
 
 .note { font-size: 11px; color: var(--muted); text-align: center; margin-top: 26px; line-height: 1.5; }
 
+.site-footer { text-align: center; font-size: 12px; color: var(--muted); line-height: 1.6; margin: 34px auto 6px; padding-top: 18px; border-top: 1px solid var(--line); max-width: 520px; }
+.site-footer b { color: var(--ink); font-weight: 800; }
+.site-footer a { color: var(--teal2); font-weight: 700; text-decoration: none; word-break: break-word; }
+.site-footer a:hover { text-decoration: underline; }
+
+/* Restack the vote arena into compact, thumb-friendly horizontal cards on
+   phones — both companies stay visible, with big tap targets. */
+@media (max-width: 560px) {
+  .arena { display: flex; flex-direction: column; gap: 0; }
+  .fighter { flex-direction: row; align-items: center; text-align: left; gap: 13px; padding: 13px 15px; border-radius: 18px; min-height: 76px; }
+  .fighter:hover { transform: none; }
+  .fighter .emoji { width: 52px; height: 52px; border-radius: 15px; font-size: 24px; }
+  .fighter .emoji img { padding: 9px; }
+  .f-info { flex: 1; align-items: flex-start; text-align: left; gap: 3px; }
+  .fighter .nm { font-size: 16px; }
+  .fighter .blurb { font-size: 12.5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .f-score { flex-shrink: 0; align-items: flex-end; text-align: right; }
+  /* The VS orb sits as a small badge overlapping between the stacked cards. */
+  .vs { height: 0; overflow: visible; }
+  .vs .orb { width: 34px; height: 34px; font-size: 12px; margin: -17px 0; }
+}
+
 /* ---------- Responsive: phones ---------- */
 @media (max-width: 460px) {
   /* Header: keep logo + credibility on one row, shrink to fit. */
@@ -192,19 +217,8 @@ nav.bottom button.active { color: var(--teal2); }
   .dots { gap: 5px; }
   .dot { width: 11px; height: 11px; }
 
-  /* Arena: keep the head-to-head side-by-side, just tighten the middle + padding. */
-  .arena { grid-template-columns: 1fr 34px 1fr; gap: 7px; }
-  .fighter { padding: 16px 11px; border-radius: 18px; gap: 8px; }
-  .emoji { width: 60px; height: 60px; border-radius: 16px; font-size: 27px; }
-  .emoji img { padding: 10px; }
-  .fighter .nm { font-size: 16px; }
+  /* (Vote-card layout for phones is handled by the ≤560px block above.) */
   .fighter .cat { font-size: 10px; letter-spacing: .5px; }
-  .fighter .blurb { font-size: 12px; min-height: 48px; }
-  .tag { font-size: 8px; padding: 3px 6px; top: 8px; right: 8px; }
-  .vs .orb { width: 36px; height: 36px; font-size: 13px; }
-
-  .subq { gap: 6px; margin: 14px 0 6px; }
-  .chip { font-size: 11px; padding: 7px 11px; }
 
   .nextbtn { padding: 12px 26px; font-size: 14px; }
   .done-card { padding: 24px 18px; }
@@ -222,8 +236,7 @@ nav.bottom button.active { color: var(--teal2); }
 
 /* Fine-tune the very narrowest phones (≤360px). */
 @media (max-width: 360px) {
-  .arena { grid-template-columns: 1fr 28px 1fr; gap: 6px; }
-  .fighter { padding: 14px 9px; }
-  .emoji { width: 54px; height: 54px; }
+  .fighter { padding: 12px 12px; }
+  .fighter .emoji { width: 46px; height: 46px; }
   .logo { font-size: 16px; }
 }
