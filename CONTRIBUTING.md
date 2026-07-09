@@ -11,7 +11,18 @@ The rankings are only as good as the company data behind them.
 
 - **Add a company** — use the in-app **Submit** page. It's URL-first and auto-fills the name, pitch and logo from the site.
 - **Fix a profile** — spot a wrong founding year, funding figure, HQ, or founder? The seed data lives in [`lib/seed.ts`](./lib/seed.ts). Open an issue or a PR. (An in-app, wiki-style suggest-edit flow gated by credibility tier is on the [roadmap](./ROADMAP.md).)
-- **Verify** — the initial 18 profiles were hand-filled from public knowledge and may be stale. Corrections **with a source** are especially welcome.
+- **Verify** — the seed profiles were hand-compiled from public knowledge and will contain stale figures. Corrections **with a source** are especially welcome.
+
+### Who belongs in the arena (eligibility)
+A company is eligible while it's a **private**, **venture-backed** (raised ≥ a Seed
+round), **alive & independent** operating company. Submissions are reviewed
+against this before going live.
+
+When a company **IPOs, is acquired, or shuts down** it *graduates*: it's archived
+out of voting and the live rankings but keeps its profile + final rating in the
+Graduates list. The eligible/graduated companies are marked in the `EXITS` map in
+[`lib/companies.data.ts`](./lib/companies.data.ts); to graduate one on a live DB
+without a re-seed, use `npm run db:retire -- "<Company>" <public|acquired|dead> "<note>"`.
 
 ## 2. 💻 Contribute code
 

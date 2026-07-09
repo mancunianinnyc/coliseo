@@ -11,6 +11,11 @@ export interface Rating {
 
 export type Stage = "Growth" | "Late";
 
+// Lifecycle: "active" companies are in the arena; the rest have "graduated"
+// (left the arena) and are archived — kept for their profile + history but
+// excluded from voting and the live rankings.
+export type Lifecycle = "active" | "public" | "acquired" | "dead";
+
 export interface CompanyLinks {
   x?: string; // twitter/x handle URL
   linkedin?: string;
@@ -40,6 +45,11 @@ export interface Company {
   founders?: string[];
   tags?: string[];
   links?: CompanyLinks;
+
+  // ---- Lifecycle (arena eligibility) ----
+  lifecycle?: Lifecycle; // defaults to "active"
+  exitedAt?: string | null; // ISO date the company graduated, if any
+  exitNote?: string | null; // e.g. "IPO'd 2025 · NYSE: FIG" or "Acquired by Google"
 }
 
 // One row per head-to-head vote. This log is append-only and never deleted —

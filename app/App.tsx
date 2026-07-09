@@ -48,6 +48,11 @@ interface Pick {
   lose: string;
 }
 
+// Only "active" companies are in the arena (eligible to be voted on & ranked).
+// Graduated companies (public / acquired / dead) are archived — still viewable,
+// but out of voting and the live tables.
+const isActive = (c: Company) => (c.lifecycle ?? "active") === "active";
+
 export default function App() {
   const { userId, anonDisabled } = useSession();
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -69,6 +74,7 @@ export default function App() {
   const [boardQ, setBoardQ] = useState<BoardQ>("ALL");
   const [dim, setDim] = useState<Dim>("category");
   const [filter, setFilter] = useState<string>("All");
+  const [showGrads, setShowGrads] = useState(false);
   const [profileId, setProfileId] = useState<number | null>(null);
   const [form, setForm] = useState({ url: "", name: "", cat: "AI", reg: "US", blurb: "", logoUrl: "" });
   const [enrich, setEnrich] = useState<{ state: "idle" | "loading" | "ok" | "err"; msg: string }>({
@@ -106,6 +112,15 @@ export default function App() {
   // Company ids come from Supabase's identity column, not a 0-based array
   // index — always look companies up by id, never by position.
   const byId = useMemo(() => new Map(companies.map((c) => [c.id, c])), [companies]);
+  // Companies eligible for the arena (voting + live rankings).
+  const activeCompanies = useMemo(() => companies.filter(isActive), [companies]);
+  const graduates = useMemo(
+    () =>
+      companies
+        .filter((c) => !isActive(c))
+        .sort((x, y) => (y.exitedAt ?? "").localeCompare(x.exitedAt ?? "")),
+    [companies],
+  );
   const [a, b] = pair;
   const A = byId.get(a);
   const B = byId.get(b);
@@ -115,9 +130,10 @@ export default function App() {
   }
 
   function nearestPair(list: Company[], qk: QKey): [number, number] {
-    const ai = Math.floor(Math.random() * list.length);
-    const anchor = list[ai];
-    const pool = list
+    const arena = list.filter(isActive);
+    const ai = Math.floor(Math.random() * arena.length);
+    const anchor = arena[ai];
+    const pool = arena
       .filter((c) => c.id !== anchor.id)
       .sort(
         (x, y) =>
@@ -298,9 +314,10 @@ export default function App() {
     setBoardQ("ALL");
   }
 
+  // Rankings are computed over active companies only — graduates don't hold a rank.
   const ranked = useMemo(
-    () => (qk: BoardQ) => [...companies].sort((x, y) => eloOf(y, qk) - eloOf(x, qk)),
-    [companies],
+    () => (qk: BoardQ) => [...activeCompanies].sort((x, y) => eloOf(y, qk) - eloOf(x, qk)),
+    [activeCompanies],
   );
   const rankOf = (id: number, qk: BoardQ) => ranked(qk).findIndex((c) => c.id === id) + 1;
 
@@ -481,78 +498,116 @@ export default function App() {
       {/* BOARD */}
       {view === "board" && (
         <section>
-          <h2 className="sec">🏆 The Tables</h2>
-          <div className="segwrap" id="ratingSeg">
-            {(["ALL", "V", "G", "D"] as BoardQ[]).map((q) => (
-              <button
-                key={q}
-                className={boardQ === q ? "active" : ""}
-                onClick={() => setBoardQ(q)}
-              >
-                {q === "ALL" ? "🏆 Overall" : `${QUESTIONS[q].emoji} ${QUESTIONS[q].label}`}
-              </button>
-            ))}
+          <div className="board-head">
+            <h2 className="sec" style={{ margin: 0 }}>
+              {showGrads ? "🎓 Graduates" : "🏆 The Tables"}
+            </h2>
+            <button className="simday" onClick={() => setShowGrads((g) => !g)}>
+              {showGrads ? "← back to the arena" : `🎓 Graduates (${graduates.length})`}
+            </button>
           </div>
-          <div className="segwrap">
-            {(["category", "region", "stage"] as Dim[]).map((d) => (
-              <button
-                key={d}
-                className={dim === d ? "active" : ""}
-                onClick={() => {
-                  setDim(d);
-                  setFilter("All");
-                }}
-              >
-                By {d}
-              </button>
-            ))}
-          </div>
-          <div className="lbtabs">
-            {["All", ...Array.from(new Set(companies.map((c) => c[keyFor(dim)] as string)))].map(
-              (o) => (
-                <button
-                  key={o}
-                  className={`chip tab ${o === filter ? "active" : ""}`}
-                  onClick={() => setFilter(o)}
-                >
-                  {o === "All" ? "🌍 Global" : o}
-                </button>
-              ),
-            )}
-          </div>
-          <div>
-            {ranked(boardQ)
-              .filter((c) => filter === "All" || (c[keyFor(dim)] as string) === filter)
-              .map((c, i) => {
-                const wk = boardQ === "ALL" ? compositeMovement(c) : c.ratings[boardQ].weekMovement;
-                const cls = wk > 0 ? "up" : wk < 0 ? "down" : "flat";
-                return (
+
+          {showGrads ? (
+            <>
+              <p className="note" style={{ margin: "4px 0 12px", textAlign: "left" }}>
+                Companies that left the arena — went public, were acquired, or shut down. They keep
+                their profile and final rating, but no longer count in the rankings.
+              </p>
+              <div>
+                {graduates.map((c) => (
                   <div
                     key={c.id}
-                    className="row"
+                    className="row grad"
                     onClick={() => {
                       setProfileId(c.id);
                       setView("profile");
                     }}
                   >
-                    <div className={`rk ${i < 3 ? "top" : ""}`}>{i + 1}</div>
+                    <div className="rk">🎓</div>
                     <Logo c={c} cls="em" />
                     <div className="info">
                       <div className="nm">{c.name}</div>
-                      <div className="cat">
-                        {c.category} · {c.region}
-                      </div>
+                      <div className="cat">{c.exitNote ?? "Graduated"}</div>
                     </div>
                     <div className="score">
-                      <div className="val">{eloOf(c, boardQ)}</div>
-                      <div className={`mv ${cls}`}>
-                        {wk > 0 ? `▲ ${wk}` : wk < 0 ? `▼ ${Math.abs(wk)}` : "—"}
-                      </div>
+                      <div className="val">{composite(c)}</div>
+                      <div className="mv flat">final</div>
                     </div>
                   </div>
-                );
-              })}
-          </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="segwrap" id="ratingSeg">
+                {(["ALL", "V", "G", "D"] as BoardQ[]).map((q) => (
+                  <button key={q} className={boardQ === q ? "active" : ""} onClick={() => setBoardQ(q)}>
+                    {q === "ALL" ? "🏆 Overall" : `${QUESTIONS[q].emoji} ${QUESTIONS[q].label}`}
+                  </button>
+                ))}
+              </div>
+              <div className="segwrap">
+                {(["category", "region", "stage"] as Dim[]).map((d) => (
+                  <button
+                    key={d}
+                    className={dim === d ? "active" : ""}
+                    onClick={() => {
+                      setDim(d);
+                      setFilter("All");
+                    }}
+                  >
+                    By {d}
+                  </button>
+                ))}
+              </div>
+              <div className="lbtabs">
+                {["All", ...Array.from(new Set(activeCompanies.map((c) => c[keyFor(dim)] as string)))].map(
+                  (o) => (
+                    <button
+                      key={o}
+                      className={`chip tab ${o === filter ? "active" : ""}`}
+                      onClick={() => setFilter(o)}
+                    >
+                      {o === "All" ? "🌍 Global" : o}
+                    </button>
+                  ),
+                )}
+              </div>
+              <div>
+                {ranked(boardQ)
+                  .filter((c) => filter === "All" || (c[keyFor(dim)] as string) === filter)
+                  .map((c, i) => {
+                    const wk = boardQ === "ALL" ? compositeMovement(c) : c.ratings[boardQ].weekMovement;
+                    const cls = wk > 0 ? "up" : wk < 0 ? "down" : "flat";
+                    return (
+                      <div
+                        key={c.id}
+                        className="row"
+                        onClick={() => {
+                          setProfileId(c.id);
+                          setView("profile");
+                        }}
+                      >
+                        <div className={`rk ${i < 3 ? "top" : ""}`}>{i + 1}</div>
+                        <Logo c={c} cls="em" />
+                        <div className="info">
+                          <div className="nm">{c.name}</div>
+                          <div className="cat">
+                            {c.category} · {c.region}
+                          </div>
+                        </div>
+                        <div className="score">
+                          <div className="val">{eloOf(c, boardQ)}</div>
+                          <div className={`mv ${cls}`}>
+                            {wk > 0 ? `▲ ${wk}` : wk < 0 ? `▼ ${Math.abs(wk)}` : "—"}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </>
+          )}
         </section>
       )}
 
@@ -590,6 +645,13 @@ export default function App() {
                 </div>
               </div>
 
+              {!isActive(c) && (
+                <div className="grad-banner">
+                  🎓 Graduated{c.exitNote ? ` — ${c.exitNote}` : ""}. No longer in the arena; final
+                  rating shown below.
+                </div>
+              )}
+
               {c.tags && c.tags.length > 0 && (
                 <div className="profile-tags">
                   {c.tags.map((t) => (
@@ -624,16 +686,17 @@ export default function App() {
 
               <div className="dossier-sub">📊 ConvictionELO ratings</div>
               <div className="vr">
-                <span className="q">🏆 Overall rank</span>
+                <span className="q">🏆 Overall {isActive(c) ? "rank" : "(final)"}</span>
                 <span className="p">
-                  #{rankOf(c.id, "ALL")} · {composite(c)} Elo
+                  {isActive(c) ? `#${rankOf(c.id, "ALL")} · ` : ""}
+                  {composite(c)} Elo
                 </span>
               </div>
               <div className="rating-cards">
                 {(["V", "G", "D"] as QKey[]).map((q) => (
                   <div className="rcard" key={q}>
                     <div className="rc-elo">{c.ratings[q].elo}</div>
-                    <div className="rc-rank">#{rankOf(c.id, q)}</div>
+                    <div className="rc-rank">{isActive(c) ? `#${rankOf(c.id, q)}` : "—"}</div>
                     <div className="cat">
                       {QUESTIONS[q].emoji} {QUESTIONS[q].label}
                     </div>
@@ -683,6 +746,24 @@ export default function App() {
           <h2 className="sec">
             ➕ Submit a startup <small>· get it into the arena</small>
           </h2>
+          <div className="eligibility">
+            <div className="elig-t">Who belongs in the arena</div>
+            <ul>
+              <li>
+                <b>Private</b> — not publicly traded.
+              </li>
+              <li>
+                <b>Venture-backed</b> — has raised at least a Seed round.
+              </li>
+              <li>
+                <b>Alive &amp; independent</b> — operating, not shut down or acquired.
+              </li>
+            </ul>
+            <div className="elig-n">
+              Companies that later IPO, get acquired, or shut down “graduate” — archived out of the
+              rankings but kept in the Graduates list. Submissions are reviewed before going live.
+            </div>
+          </div>
           <div className="form">
             <label>Company website</label>
             <div style={{ display: "flex", gap: 8 }}>
@@ -788,9 +869,10 @@ export default function App() {
 }
 
 function firstPair(list: Company[]): [number, number] {
-  const ai = Math.floor(Math.random() * list.length);
-  const anchor = list[ai];
-  const pool = list
+  const arena = list.filter(isActive);
+  const ai = Math.floor(Math.random() * arena.length);
+  const anchor = arena[ai];
+  const pool = arena
     .filter((c) => c.id !== anchor.id)
     .sort(
       (x, y) =>

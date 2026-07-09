@@ -1,5 +1,5 @@
 import type { Company, CompanyLinks, QKey, Rating } from "./types";
-import { COMPANIES, type SeedCompany } from "./companies.data";
+import { COMPANIES, EXITS, type SeedCompany } from "./companies.data";
 
 // Self-hosted logo path (see scripts/fetch-logos.ts). Slug = first label of the
 // domain (openai.com -> openai).
@@ -61,6 +61,7 @@ export function buildCompanies(): Company[] {
       G: rating(base + gOff),
       D: rating(base + dOff),
     };
+    const exit = EXITS[s.n];
     return {
       id: i,
       name: s.n,
@@ -81,6 +82,9 @@ export function buildCompanies(): Company[] {
       founders: s.fo,
       tags: s.tags,
       links: links(s),
+      lifecycle: exit?.s ?? "active",
+      exitedAt: exit?.year ? `${exit.year}-01-01` : null,
+      exitNote: exit?.note ?? null,
     };
   });
 }
