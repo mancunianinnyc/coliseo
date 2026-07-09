@@ -66,8 +66,11 @@ body {
 .fighter .elo { font-size: 14px; font-weight: 800; color: var(--sky); }
 .delta { font-size: 12.5px; font-weight: 800; }
 .delta.up { color: var(--mint); } .delta.down { color: var(--red); }
-.dunno-tag { background: var(--soft); border: 1px solid var(--line); color: var(--muted); font-size: 11px; font-weight: 700; padding: 6px 11px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; min-height: 32px; white-space: nowrap; }
-.dunno-tag:hover { border-color: var(--gold); color: var(--ink); }
+/* Deliberately recessive — a subtle text link, not a button, so tapping the
+   card itself stays the clear primary action. */
+.dunno-tag { background: none; border: none; color: var(--muted); font-size: 11px; font-weight: 600; padding: 5px 2px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; opacity: .7; white-space: nowrap; }
+.dunno-tag span { text-decoration: underline; text-underline-offset: 2px; }
+.dunno-tag:hover { opacity: 1; color: var(--ink); }
 .vs { display: grid; place-items: center; }
 .vs .orb { width: 44px; height: 44px; border-radius: 50%; background: var(--card); border: 1.5px solid var(--line); box-shadow: var(--shadow-sm); display: grid; place-items: center; font-weight: 900; font-style: italic; color: var(--muted); font-size: 15px; z-index: 1; }
 
@@ -103,6 +106,11 @@ h2.sec { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: 2
 .row.grad .rk { font-size: 18px; }
 .row.grad .score .mv { color: var(--muted); text-transform: uppercase; letter-spacing: .5px; font-size: 9px; }
 .grad-banner { background: linear-gradient(135deg, rgba(255,182,56,.15), rgba(55,182,255,.12)); border: 1px solid var(--line); border-radius: 12px; padding: 11px 14px; font-size: 12.5px; font-weight: 700; color: var(--ink); margin: 14px 0 6px; }
+.locked { text-align: center; padding: 34px 20px 20px; }
+.locked .lock-emoji { font-size: 46px; }
+.locked h2.sec { margin: 8px 0 6px; }
+.lock-p { color: var(--muted); font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+.lock-prog { display: inline-block; margin-top: 10px; font-weight: 800; color: var(--teal2); }
 .eligibility { background: var(--soft); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; }
 .eligibility .elig-t { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); margin-bottom: 8px; }
 .eligibility ul { list-style: none; display: grid; gap: 5px; }
@@ -178,22 +186,23 @@ nav.bottom button.active { color: var(--teal2); }
 
 .note { font-size: 11px; color: var(--muted); text-align: center; margin-top: 26px; line-height: 1.5; }
 
-.site-footer { text-align: center; font-size: 12px; color: var(--muted); line-height: 1.6; margin: 34px auto 6px; padding-top: 18px; border-top: 1px solid var(--line); max-width: 520px; }
-.site-footer b { color: var(--ink); font-weight: 800; }
-.site-footer a { color: var(--teal2); font-weight: 700; text-decoration: none; word-break: break-word; }
-.site-footer a:hover { text-decoration: underline; }
+.site-footer { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; font-size: 10.5px; font-weight: 500; color: #aeacbd; line-height: 1.6; margin: 40px auto 4px; padding-top: 18px; border-top: 1px solid var(--line); max-width: 520px; }
+.gh-btn { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; color: #aeacbd; transition: .15s; }
+.gh-btn svg { width: 17px; height: 17px; fill: currentColor; }
+.gh-btn:hover { color: var(--ink); background: var(--soft); }
 
 /* Restack the vote arena into compact, thumb-friendly horizontal cards on
    phones — both companies stay visible, with big tap targets. */
 @media (max-width: 560px) {
   .arena { display: flex; flex-direction: column; gap: 0; }
-  .fighter { flex-direction: row; align-items: center; text-align: left; gap: 13px; padding: 13px 15px; border-radius: 18px; min-height: 76px; }
+  .fighter { flex-direction: row; align-items: center; text-align: left; gap: 16px; padding: 20px 18px; border-radius: 20px; min-height: 104px; }
   .fighter:hover { transform: none; }
-  .fighter .emoji { width: 52px; height: 52px; border-radius: 15px; font-size: 24px; }
-  .fighter .emoji img { padding: 9px; }
-  .f-info { flex: 1; align-items: flex-start; text-align: left; gap: 3px; }
-  .fighter .nm { font-size: 16px; }
-  .fighter .blurb { font-size: 12.5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .fighter .emoji { width: 68px; height: 68px; border-radius: 19px; font-size: 32px; }
+  .fighter .emoji img { padding: 12px; }
+  .f-info { flex: 1; align-items: flex-start; text-align: left; gap: 4px; }
+  .fighter .nm { font-size: 20px; }
+  .fighter .cat { font-size: 10.5px; }
+  .fighter .blurb { font-size: 13px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .f-score { flex-shrink: 0; align-items: flex-end; text-align: right; }
   /* The VS orb sits as a small badge overlapping between the stacked cards. */
   .vs { height: 0; overflow: visible; }
