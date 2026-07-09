@@ -4,15 +4,17 @@ Things to do **before** opening ConvictionELO to the public. Work top to bottom.
 
 ## 1. Clear the test data ⚠️ required
 
-While building, we created some throwaway test votes and a test profile in the
-database. Wipe them so real users start from a clean slate:
+While building, we created throwaway test votes and profiles — and those votes
+also nudged the leaderboard's Elo scores. This command resets the whole database
+back to the exact seeded starting state (clears votes/profiles/revisions AND
+restores every company's ratings), then re-seeds the companies:
 
 ```bash
 npm run db:reset-test-data
 ```
 
-This deletes everything in `votes`, `profiles`, and `revisions`. It **does not**
-touch the seeded companies or their ratings, so the leaderboard content stays.
+After it runs, the leaderboard is exactly as designed and there's no test
+activity anywhere.
 
 (Optional, for a truly fresh slate: in the Supabase dashboard go to
 **Authentication → Users** and delete the anonymous test users too.)

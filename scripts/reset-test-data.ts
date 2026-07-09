@@ -1,9 +1,8 @@
-// Clears user-generated TEST data so the project starts clean for a public
-// launch: every row in `votes`, `profiles`, and `revisions` is deleted.
-//
-// It deliberately does NOT touch `companies` or `ratings` — those hold the
-// seeded content the app is built on. (Ratings are safe because Elo is applied
-// client-side only and never persisted, so votes so far haven't changed them.)
+// Full reset to the seeded launch state. Wipes ALL app data — votes, profiles,
+// revisions, ratings, and companies — so no trace of test activity remains
+// (including the Elo drift that test votes caused in `ratings`, now that votes
+// are applied server-side). The npm script chains `db:seed` afterwards to
+// re-insert the seed companies + ratings from lib/seed.ts.
 //
 // Run once, right before you open the app to the public:
 //   npm run db:reset-test-data
@@ -21,9 +20,11 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// Order matters only if you add cross-table foreign keys later; these three are
-// independent today, but we keep a sensible order anyway.
-const TABLES = ["revisions", "votes", "profiles"] as const;
+// All app tables. TRUNCATE ... CASCADE clears them together regardless of the
+// foreign keys between them; RESTART IDENTITY resets company ids back to 1 so a
+// re-seed is identical to a first seed. auth.users is NOT touched here — clear
+// anonymous test users from the Supabase dashboard if you want those gone too.
+const TABLES = ["votes", "profiles", "revisions", "ratings", "companies"] as const;
 
 async function count(client: Client, table: string): Promise<number> {
   const { rows } = await client.query(`select count(*)::int as n from ${table}`);
@@ -37,16 +38,11 @@ async function main() {
     console.log("Before reset:");
     for (const t of TABLES) console.log(`  ${t}: ${await count(client, t)} rows`);
 
-    for (const t of TABLES) await client.query(`delete from ${t}`);
+    await client.query(`truncate ${TABLES.join(", ")} restart identity cascade`);
 
-    console.log("After reset:");
+    console.log("After reset (empty — re-seed runs next):");
     for (const t of TABLES) console.log(`  ${t}: ${await count(client, t)} rows`);
-
-    console.log("\n✓ Test data cleared. companies + ratings were left untouched.");
-    console.log(
-      "Note: anonymous auth users may still exist in Supabase Auth — clear them from\n" +
-        "the dashboard (Authentication → Users) if you want a completely fresh slate.",
-    );
+    console.log("\n✓ All test data cleared. `db:seed` will now restore the seed companies + ratings.");
   } finally {
     await client.end();
   }
