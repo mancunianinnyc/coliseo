@@ -32,12 +32,14 @@ password**, then update `SUPABASE_DB_URL` in your local `.env.local`. (This
 password is only used by the admin scripts, never by the app itself.)
 
 ### 3. Deploy to production 🚀 required
-The app isn't live anywhere yet — you can't iterate on what you can't reach.
-- Import the repo into Vercel (or an alternative — see the note in chat).
-- Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` as host
+The app is deployed on Vercel as `convictionelo`. Keep GitHub `main` as the
+canonical production path and use preview deployments for feature branches/PRs.
+
+- Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` as Vercel
   environment variables — **never** in code.
-- Ship to a **preview URL first**, click through it, then promote to production.
-  (Vercel gives every branch/PR its own preview URL — that's your free staging.)
+- Avoid ad hoc production CLI deploys except emergency rollback.
+- Before broad launch, attach the canonical domain and redirect Vercel preview
+  aliases away from public marketing links.
 
 ### 4. Know how to moderate submissions ✍️ required
 Anyone can now submit a company (`submit_company` RPC); it lands as
@@ -91,11 +93,25 @@ functions (`supabase/cast_vote.sql`, `supabase/submit_company.sql`) so nobody ca
 vote as someone else, write ratings directly, or push a company straight to
 `live`.
 
+Launch hardening has been applied and checked in as `supabase/launch_hardening.sql`:
+FK indexes, optimized `auth.uid()` RLS policies, duplicate-vote race protection,
+private RPC rate-limit plumbing, and revoked `anon`/`public` execute grants. The
+remaining signed-in `SECURITY DEFINER` advisor warning is expected while the
+browser calls `cast_vote`/`submit_company` directly through Supabase.
+
 ### 9. Anti-manipulation / rate limiting
 Anonymous accounts are free to mint, so `cast_vote`'s 3-per-day limit is
-per-account, not per-person — a determined brigade could skew a ranking. Before a
-high-traffic post, add per-IP limits and/or cohort-split discounting (see the
-roadmap's "Anti-manipulation hardening").
+per-account, not per-person — a determined brigade could skew a ranking.
+
+Current baseline:
+- `cast_vote` is limited per user and per IP over a short window.
+- `submit_company` is limited per user and per IP over a daily window.
+- `votes` has a unique `(voter_id, dimension, vote_day)` index to protect
+  against concurrent duplicate votes.
+
+Before a high-traffic post, add Vercel Firewall rules for `/api/enrich`, consider
+CAPTCHA on suspicious submission patterns, and add dashboard monitoring for vote
+velocity by IP/user-agent/cohort.
 
 ### 10. Privacy note / terms
 The app creates accounts (anonymous) and stores votes — add a short privacy note
@@ -105,6 +121,16 @@ before you drive real traffic.
 Moderating via the dashboard is fine for a trickle. If a public post floods the
 `pending` queue, decide who reviews and how fast (and consider the roadmap's
 credibility-gated community moderation).
+
+### 12. CI and branch protection
+Require the GitHub Actions CI workflow on `main` before public launch. Recommended
+branch protection: require PRs, require CI, disallow force-pushes, and squash or
+linearize merges.
+
+### 13. Observability
+Add production error monitoring and decide where Vercel/Supabase alerts should
+go. At minimum, watch RPC errors, `/api/enrich` failures, signup spikes, and vote
+write failures during launch windows.
 
 ---
 

@@ -14,14 +14,24 @@ A daily game where people vote on head-to-head startup matchups. Each vote nudge
 | **[startup-elo-mvp.html](./startup-elo-mvp.html)** | The working interactive prototype. Just double-click to open in any browser — no install, no backend. State resets on refresh. |
 | **[Startup ELO.md](./Startup%20ELO.md)** | The original strategy blueprint — the deeper rationale and citations behind every product decision. |
 
-## Try the prototype
+## Run the app
 
-Double-click **`startup-elo-mvp.html`** (opens in your default browser). Then:
+A runnable **Next.js + TypeScript** app is live-backed by Supabase. It loads
+companies and ratings from Postgres, signs visitors in with Supabase Anonymous
+Auth, applies votes through the server-authoritative `cast_vote` RPC, persists
+streaks in `profiles`, and accepts moderated submissions through
+`submit_company`.
 
-1. **Vote** — you get 3 daily matchups, one per dimension (Value → Growth → Workplace). Tap a company to cast your call and watch the Elo move.
-2. **▶ new day** (top strip) — fast-forwards to tomorrow so you can watch the streak and credibility tier climb (or decay if you skip a day).
-3. **Tables** — browse the Overall composite leaderboard plus per-dimension tables, filtered by category / region / stage.
-4. **Submit** — add a startup; it enters all three tables at Elo 1500.
+```bash
+npm install
+npm run dev      # http://localhost:3000
+```
+
+Without `.env.local`, the app falls back to local seed data so the UI still runs.
+Use `.env.example` for the required Supabase keys.
+
+The original single-file prototype is still kept as `startup-elo-mvp.html` for
+product/design reference.
 
 ## Hand it to another tool
 
@@ -36,34 +46,13 @@ To continue building in Lovable, Replit, or v0: share **`ConvictionELO-spec.md`*
 - **Design:** light & airy, teal/sky accents (no purple), Fraunces + Space Grotesk.
 - **Deferred:** betting/prediction markets, founder accounts, mobile app, paid plans.
 
-## Push these files to your GitHub repo
+## Production status
 
-Repo: **https://github.com/mancunianinnyc/ConvictionELO**
-
-From this project folder, on a machine where you're signed in to GitHub:
-
-```bash
-git init
-git remote add origin https://github.com/mancunianinnyc/ConvictionELO.git
-git add .
-git commit -m "Add spec, README, prototype and .gitignore"
-git branch -M main
-git pull origin main --allow-unrelated-histories   # pulls the repo's existing README
-# if README.md conflicts, keep this folder's version:
-#   git checkout --ours README.md && git add README.md && git commit --no-edit
-git push -u origin main
-```
-
-Prefer the browser? On the repo page use **Add file → Upload files**, drag in `ConvictionELO-spec.md`, `startup-elo-mvp.html`, `Startup ELO.md`, and `.gitignore`, and commit.
-
-## Run the app locally
-
-A runnable **Next.js + TypeScript** app is scaffolded. It currently runs fully client-side on seed data (no backend needed yet).
-
-```bash
-npm install
-npm run dev      # http://localhost:3000
-```
+- **GitHub:** `mancunianinnyc/ConvictionELO`
+- **Vercel:** `convictionelo` Next.js project
+- **Supabase:** `ConvictionELO` in `ca-central-1`
+- **Launch hardening:** see `supabase/launch_hardening.sql` and
+  `LAUNCH_CHECKLIST.md`
 
 ## Repository contents
 
@@ -74,8 +63,14 @@ app/                    Next.js App Router — the runnable app
   layout.tsx, page.tsx
 lib/                    pure domain logic (framework-agnostic)
   elo.ts                Elo math, credibility tiers, composite  ← unit-testable core
+  supabase.ts           browser Supabase client
+  loadCompanies.ts      DB-backed companies/ratings loader
+  auth.ts               anonymous Supabase identity
+  castVote.ts           RPC client for server-authoritative voting
+  submitCompany.ts      RPC client for moderated submissions
+  unknowns.ts           obscurity signal writes
   seed.ts, questions.ts, types.ts
-supabase/schema.sql     Postgres tables + RLS policies (for the backend step)
+supabase/               Postgres schema, RPCs, and launch hardening SQL
 CLAUDE.md               guide for Claude Code / AI agents working in the repo
 ConvictionELO-spec.md   product spec + build handoff (source of truth)
 startup-elo-mvp.html    original single-file prototype (reference)
@@ -91,8 +86,10 @@ Claude Code *can* write to and push to this repo (Cowork can't — that's why th
 2. It reads **`CLAUDE.md`** automatically for project context, stack, and conventions.
 3. Ask it to work on a task — it creates a branch, makes changes in an isolated environment, and opens a pull request you review and merge.
 
-Good first tasks for Claude Code are listed at the bottom of `CLAUDE.md` (wire Supabase, auth + persistent streak, server-side Elo, OG share images, suggest-edit flow, unit tests for `lib/elo.ts`).
+Good first tasks for Claude Code are listed at the bottom of `CLAUDE.md`.
 
 ## Status
 
-Front-end prototype **and** a runnable Next.js foundation complete. Next: back it with Supabase + deploy on Vercel — see spec §9 and `CLAUDE.md`.
+Live MVP foundation complete: Supabase-backed data, anonymous auth, server-side
+Elo, moderated submissions, and Vercel deployment. Next: public-launch hardening,
+observability, canonical domain, and contributor-friendly tests.

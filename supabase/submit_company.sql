@@ -39,6 +39,11 @@ begin
   if v_user is null then
     raise exception 'not authenticated' using errcode = '28000';
   end if;
+
+  -- Light anti-abuse guard. The helper/table are created by
+  -- supabase/launch_hardening.sql.
+  perform private.check_rpc_rate_limit('submit_company', 6, 20, interval '1 day');
+
   if v_name = '' or char_length(v_name) > 80 then
     raise exception 'name must be 1–80 characters';
   end if;
@@ -91,5 +96,5 @@ $$;
 
 -- Only signed-in (incl. anonymous) users may submit; nobody writes companies or
 -- ratings directly under RLS. Submissions flow exclusively through this function.
-revoke all on function submit_company(text, text, text, text, text, text) from public;
+revoke all on function submit_company(text, text, text, text, text, text) from public, anon;
 grant execute on function submit_company(text, text, text, text, text, text) to authenticated;

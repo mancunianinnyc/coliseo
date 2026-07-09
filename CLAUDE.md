@@ -10,8 +10,8 @@ ConvictionELO is a daily game where people vote on head-to-head startup matchups
 
 - **Next.js 14 (App Router) + TypeScript + React 18**
 - Plain CSS with design tokens in `app/globals.css` (no Tailwind yet — match the existing tokens if you add a framework)
-- **Supabase** (Postgres, auth, RLS) is the backend — schema in `supabase/schema.sql`. Wired in: companies/ratings load from the DB, anonymous auth mints a pseudonymous identity, votes append to the `votes` log, and streak/tier persist to `profiles`. Server-side Elo application is still a TODO.
-- Deploy target: **Vercel** (needed for dynamic Open Graph share images)
+- **Supabase** (Postgres, auth, RLS) is the backend. Companies/ratings load from the DB, anonymous auth mints a pseudonymous identity, `cast_vote` applies Elo server-side, `profiles` persist streak/tier, and `submit_company` creates moderated pending submissions. Schema/RPCs live in `supabase/`.
+- Deploy target: **Vercel**. The production project is `convictionelo`.
 
 ## Project structure
 
@@ -30,9 +30,14 @@ lib/
   loadCompanies.ts  Loads companies + ratings from the DB (falls back to seed)
   auth.ts           useSession(): anonymous sign-in + pseudonymous identity
   profile.ts        Load/create profile, persist streak/tier
-  votes.ts          Append a head-to-head to the immutable votes log
+  castVote.ts       RPC client for server-authoritative voting
+  submitCompany.ts  RPC client for moderated submissions
+  unknowns.ts       Obscurity signal writes
 supabase/
-  schema.sql        Tables + RLS policies (companies, ratings, votes, profiles, revisions)
+  schema.sql        Base tables + RLS policies
+  cast_vote.sql     Server-authoritative vote + Elo RPC
+  submit_company.sql  Moderated submission RPC
+  launch_hardening.sql  Indexes, grants, RLS optimization, rate-limit plumbing
 scripts/
   apply-schema.ts   Apply schema.sql to the DB (npm run db:apply-schema)
   seed.ts           Seed companies + ratings from lib/seed.ts (npm run db:seed)
@@ -52,26 +57,25 @@ npm run dev      # http://localhost:3000
 With Supabase configured via `.env.local`, the app loads companies from the DB and
 signs the visitor in anonymously. Without it, the app falls back to in-memory seed data.
 
-**Before any public launch, see [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md)** — most
-importantly, run `npm run db:reset-test-data` to clear test votes/profiles.
+**Before any public launch, see [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md)**.
 
 ## Conventions & guardrails
 
 - **Keep `lib/elo.ts` pure and framework-agnostic** — it's the heart of the product and should stay unit-testable. Don't import React or Supabase into it.
 - **Votes are append-only.** When Supabase is wired in, every vote is its own row and is never deleted or mutated (see spec §7) — it's what enables split analysis and future re-estimation (Bradley–Terry / TrueSkill).
-- **Apply Elo server-side** eventually: rating writes and revision approvals belong in a `SECURITY DEFINER` function / edge handler, not the client. Clients insert votes; the server validates and updates ratings.
+- **Keep Elo server-side.** Rating writes flow through `cast_vote`; clients should never write `ratings` directly.
 - **RLS is not optional** — public reads, role-gated writes. Follow the policies in `supabase/schema.sql`.
 - **Never commit secrets.** Use `.env.local` (gitignored); `.env.example` lists the keys.
 - **Design:** light & airy, teal (`#0eb6a6`) + sky (`#37b6ff`) accents, **no purple**. Fraunces for headlines, Space Grotesk for UI.
 
 ## Next steps (good first PRs)
 
-1. Wire Supabase: add `@supabase/supabase-js`, a `lib/supabase.ts` client, load companies/ratings from the DB.
-2. Auth + persistent streak/credibility on `profiles`.
-3. Server route to record a vote and apply Elo atomically.
-4. Share card as a route with a dynamic `opengraph-image`.
-5. Wiki-style suggest-edit flow against the `revisions` table.
-6. Unit tests for `lib/elo.ts`.
+1. Add unit tests for `lib/elo.ts` and RPC contract tests for `cast_vote`.
+2. Move browser-facing vote/submission calls behind Next.js route handlers so the `SECURITY DEFINER` RPCs can be revoked from `authenticated`.
+3. Add Playwright smoke coverage for vote, leaderboard unlock, submit, and profile flows.
+4. Add observability/error reporting for Vercel and Supabase RPC failures.
+5. Ship canonical domain, privacy note, and a small terms page before broad public launch.
+6. Build the wiki-style suggest-edit flow against the `revisions` table.
 
 ## Deferred (do not build yet)
 

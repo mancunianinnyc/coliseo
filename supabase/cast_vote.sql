@@ -37,6 +37,11 @@ begin
   if v_voter is null then
     raise exception 'not authenticated' using errcode = '28000';
   end if;
+
+  -- Light anti-abuse guard. The helper/table are created by
+  -- supabase/launch_hardening.sql.
+  perform private.check_rpc_rate_limit('cast_vote', 12, 60, interval '10 minutes');
+
   if p_dimension not in ('V','G','D') then
     raise exception 'invalid dimension: %', p_dimension;
   end if;
@@ -54,7 +59,7 @@ begin
     select 1 from votes
     where voter_id = v_voter
       and dimension = p_dimension
-      and created_at >= date_trunc('day', now())
+      and vote_day = (now() at time zone 'UTC')::date
   ) then
     raise exception 'already voted on this dimension today'
       using errcode = 'P0001';
@@ -120,6 +125,6 @@ $$;
 -- Only signed-in (incl. anonymous) users may call it; nobody may write ratings
 -- directly. Votes now flow exclusively through this function, so remove the
 -- old client-side direct-insert policy.
-revoke all on function cast_vote(bigint, bigint, text, bigint) from public;
+revoke all on function cast_vote(bigint, bigint, text, bigint) from public, anon;
 grant execute on function cast_vote(bigint, bigint, text, bigint) to authenticated;
 drop policy if exists "insert own votes" on votes;
