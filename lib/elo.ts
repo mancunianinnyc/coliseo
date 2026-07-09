@@ -40,11 +40,12 @@ export function confidence(c: Company, qk: QKey): "Provisional" | "Established" 
 }
 
 /**
- * Apply a result to a single dimension's Elo. Mutates the two companies.
- * voteWeight comes from the voter's credibility tier (1.0–1.35).
- * Returns the winner/loser deltas.
+ * Compute the winner/loser Elo deltas for a single dimension WITHOUT mutating
+ * anything. Pure — safe to call for a provisional "what would this pick do?"
+ * preview that the user can still change. voteWeight comes from the voter's
+ * credibility tier (1.0–1.35).
  */
-export function applyElo(
+export function eloDeltas(
   winner: Company,
   loser: Company,
   qk: QKey,
@@ -53,6 +54,20 @@ export function applyElo(
   const ew = expected(winner, loser, qk);
   const dw = Math.round(kFactor(winner, qk) * (1 - ew) * voteWeight);
   const dl = Math.round(kFactor(loser, qk) * (0 - (1 - ew)) * voteWeight);
+  return { dw, dl };
+}
+
+/**
+ * Apply a result to a single dimension's Elo. Mutates the two companies.
+ * Returns the winner/loser deltas.
+ */
+export function applyElo(
+  winner: Company,
+  loser: Company,
+  qk: QKey,
+  voteWeight = 1,
+): { dw: number; dl: number } {
+  const { dw, dl } = eloDeltas(winner, loser, qk, voteWeight);
   winner.ratings[qk].elo += dw;
   loser.ratings[qk].elo += dl;
   winner.ratings[qk].games += 1;

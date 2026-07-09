@@ -9,8 +9,11 @@
   --shadow-sm: 0 3px 12px rgba(46, 40, 90, .07);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
 body {
   font-family: "Space Grotesk", system-ui, sans-serif; color: var(--ink); min-height: 100vh;
+  /* Never let a stray fixed width scroll the whole page sideways on a phone. */
+  overflow-x: hidden;
   background:
     radial-gradient(900px 620px at 85% -8%, rgba(14, 182, 166, .12), transparent 60%),
     radial-gradient(760px 560px at -8% 6%, rgba(55, 182, 255, .12), transparent 55%),
@@ -18,7 +21,9 @@ body {
     var(--bg);
   -webkit-font-smoothing: antialiased;
 }
-.wrap { max-width: 760px; margin: 0 auto; padding: 18px 16px 120px; }
+/* Long company names / blurbs wrap instead of forcing width. */
+.nm, .blurb, .cat { overflow-wrap: anywhere; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 18px clamp(12px, 4vw, 16px) 108px; }
 
 .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 21px; letter-spacing: -.5px; }
@@ -41,7 +46,7 @@ body {
 
 .qbar { text-align: center; margin: 6px 0 18px; }
 .qbar .k { font-size: 12px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; font-weight: 800; }
-.qbar h1 { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: 30px; line-height: 1.12; margin-top: 8px; letter-spacing: -.4px; }
+.qbar h1 { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: clamp(23px, 5.6vw, 32px); line-height: 1.12; margin-top: 8px; letter-spacing: -.4px; text-wrap: balance; }
 .qbar h1 span { background: linear-gradient(90deg, var(--coral), var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
 .arena { display: grid; grid-template-columns: 1fr 54px 1fr; gap: 10px; align-items: stretch; }
@@ -116,3 +121,56 @@ nav.bottom button .ic { font-size: 20px; }
 nav.bottom button.active { color: var(--teal2); }
 
 .note { font-size: 11px; color: var(--muted); text-align: center; margin-top: 26px; line-height: 1.5; }
+
+/* ---------- Responsive: phones ---------- */
+@media (max-width: 460px) {
+  /* Header: keep logo + credibility on one row, shrink to fit. */
+  .top { gap: 8px; margin-bottom: 12px; }
+  .logo { font-size: 18px; gap: 8px; }
+  .logo .spark { width: 30px; height: 30px; border-radius: 10px; font-size: 16px; }
+  .cred { gap: 6px; flex-shrink: 0; }
+  .tier { font-size: 11px; padding: 5px 9px; }
+  .badge { font-size: 12px; padding: 5px 10px; }
+
+  /* Daily bar: don't let "picks left" wrap to many lines. */
+  .daily { padding: 10px 13px; border-radius: 14px; margin-bottom: 14px; gap: 8px; }
+  .dl { gap: 9px; min-width: 0; }
+  .daily .txt { font-size: 12px; }
+  .dots { gap: 5px; }
+  .dot { width: 11px; height: 11px; }
+
+  /* Arena: keep the head-to-head side-by-side, just tighten the middle + padding. */
+  .arena { grid-template-columns: 1fr 34px 1fr; gap: 7px; }
+  .fighter { padding: 16px 11px; border-radius: 18px; gap: 8px; }
+  .emoji { width: 60px; height: 60px; border-radius: 16px; font-size: 27px; }
+  .emoji img { padding: 10px; }
+  .fighter .nm { font-size: 16px; }
+  .fighter .cat { font-size: 10px; letter-spacing: .5px; }
+  .fighter .blurb { font-size: 12px; min-height: 48px; }
+  .tag { font-size: 8px; padding: 3px 6px; top: 8px; right: 8px; }
+  .vs .orb { width: 36px; height: 36px; font-size: 13px; }
+
+  .subq { gap: 6px; margin: 14px 0 6px; }
+  .chip { font-size: 11px; padding: 7px 11px; }
+
+  .nextbtn { padding: 12px 26px; font-size: 14px; }
+  .done-card { padding: 24px 18px; }
+  h2.sec { font-size: clamp(20px, 5.4vw, 23px); }
+
+  /* Leaderboard rows: tighter columns so Elo + movement never clip. */
+  .row { grid-template-columns: 26px 38px 1fr auto; gap: 10px; padding: 10px 12px; }
+  .row .em { width: 36px; height: 36px; }
+  .row .info .nm { font-size: 14px; }
+  .segwrap button { font-size: 11.5px; padding: 8px 4px; }
+
+  .form { padding: 18px; }
+  nav.bottom button { padding: 5px 10px; }
+}
+
+/* Fine-tune the very narrowest phones (≤360px). */
+@media (max-width: 360px) {
+  .arena { grid-template-columns: 1fr 28px 1fr; gap: 6px; }
+  .fighter { padding: 14px 9px; }
+  .emoji { width: 54px; height: 54px; }
+  .logo { font-size: 16px; }
+}

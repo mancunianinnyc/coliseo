@@ -9,6 +9,7 @@ node_modules/
 out/
 build/
 dist/
+*.tsbuildinfo
 
 # Environment & secrets — never commit these
 .env

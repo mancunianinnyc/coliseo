@@ -4,12 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import type { Company, QKey } from "@/lib/types";
 import { QUESTIONS, QORDER } from "@/lib/questions";
 import { loadCompanies } from "@/lib/loadCompanies";
+import { useSession } from "@/lib/auth";
+import { loadOrCreateProfile, saveStreak } from "@/lib/profile";
+import { recordVote } from "@/lib/votes";
 import {
   applyElo,
   composite,
   compositeMovement,
   confidence,
   decayedStreak,
+  eloDeltas,
   eloOf,
   expected,
   tierFor,
@@ -41,15 +45,21 @@ interface Pick {
 }
 
 export default function App() {
+  const { userId, anonDisabled } = useSession();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [view, setView] = useState<View>("vote");
-  const [streak, setStreak] = useState(1);
+  const [streak, setStreak] = useState(0);
   const [pickIndex, setPickIndex] = useState(0);
   const [pair, setPair] = useState<[number, number]>([0, 1]);
+  // A *provisional* selection for the current pick — nothing is committed
+  // (no Elo persisted, no vote recorded) until commitPick(). Re-tapping the
+  // other card just recomputes this, so the user can freely change their mind.
   const [decided, setDecided] = useState<null | {
     winSide: "A" | "B";
-    dA: number;
-    dB: number;
+    dA: number; // delta shown on card A
+    dB: number; // delta shown on card B
+    eloA: number; // preview Elo shown on card A
+    eloB: number; // preview Elo shown on card B
   }>(null);
   const [todaysPicks, setTodaysPicks] = useState<Pick[]>([]);
   const [boardQ, setBoardQ] = useState<BoardQ>("ALL");
@@ -69,6 +79,19 @@ export default function App() {
       cancelled = true;
     };
   }, []);
+
+  // Once the pseudonymous identity settles, hydrate the persisted streak/tier
+  // from `profiles` (creating the row on first visit).
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    loadOrCreateProfile(userId).then((p) => {
+      if (!cancelled) setStreak(p.streak);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   const tier = tierFor(streak);
   const voteQ = QORDER[Math.min(pickIndex, 2)];
@@ -103,43 +126,81 @@ export default function App() {
     setDecided(null);
   }
 
-  function vote(side: "A" | "B") {
-    if (decided) return;
+  // Provisionally select a side. Computed against the current (committed)
+  // ratings without mutating anything, so tapping the other card simply
+  // recomputes the preview — the pick isn't locked in until commitPick().
+  function selectSide(side: "A" | "B") {
+    if (!A || !B) return; // only reachable once both cards are loaded
     const qk = voteQ;
+    const winner = side === "A" ? A : B;
+    const loser = side === "A" ? B : A;
+    const { dw, dl } = eloDeltas(winner, loser, qk, tier.mult);
+    const eloWinner = winner.ratings[qk].elo + dw;
+    const eloLoser = loser.ratings[qk].elo + dl;
+    setDecided({
+      winSide: side,
+      dA: side === "A" ? dw : dl,
+      dB: side === "A" ? dl : dw,
+      eloA: side === "A" ? eloWinner : eloLoser,
+      eloB: side === "A" ? eloLoser : eloWinner,
+    });
+  }
+
+  // Lock in the current provisional selection: record the vote, apply the
+  // (local-only) Elo, advance to the next pick or the daily-complete screen.
+  function commitPick() {
+    if (!decided) return;
+    const qk = voteQ;
+    const side = decided.winSide;
     const next = companies.map((c) => ({ ...c, ratings: { ...c.ratings } }));
     const nextById = new Map(next.map((c) => [c.id, c]));
     const winner = nextById.get(side === "A" ? a : b)!;
     const loser = nextById.get(side === "A" ? b : a)!;
-    // Optimistic local-only Elo move for the reveal animation below — never
-    // persisted. TODO(auth + server route): once a signed-in voter exists,
-    // insert a row into `votes` (voter_id, companyA, companyB, dimension,
-    // winner, voterTier) and let a SECURITY DEFINER function apply the real
-    // Elo update to `ratings` server-side (see CLAUDE.md / spec §7, §9).
-    const { dw, dl } = applyElo(winner, loser, qk, tier.mult);
+
+    // Now that it's confirmed, append the comparison to the immutable `votes`
+    // log (the real record). Fire-and-forget so a failed insert can't block UI.
+    if (userId) {
+      void recordVote({
+        voterId: userId,
+        companyA: a,
+        companyB: b,
+        dimension: qk,
+        winner: winner.id,
+        voterTier: tier.name,
+      });
+    }
+
+    // Optimistic LOCAL-ONLY Elo move. TODO(server route): a SECURITY DEFINER
+    // function should validate the vote and apply the real rating update
+    // server-side so ratings can't be forged by the client (CLAUDE.md / §7,§9).
+    applyElo(winner, loser, qk, tier.mult);
     setCompanies(next);
-    setDecided({ winSide: side, dA: side === "A" ? dw : dl, dB: side === "A" ? dl : dw });
     setTodaysPicks((p) => [...p, { q: qk, win: winner.name, lose: loser.name }]);
+    setDecided(null);
+
     const nextIndex = pickIndex + 1;
     setPickIndex(nextIndex);
     if (nextIndex >= 3) {
-      setTimeout(() => {
-        setStreak((s) => s + 1);
-        setView("done");
-      }, 900);
-    }
-  }
-
-  function nextMatch(skip = false) {
-    if (!skip && pickIndex >= 3) {
+      setStreak((s) => {
+        const bumped = s + 1;
+        if (userId) void saveStreak(userId, bumped); // persist the day's streak
+        return bumped;
+      });
       setView("done");
-      return;
+    } else {
+      newMatch(next, nextIndex);
     }
-    newMatch();
   }
 
   function simDay() {
     // Missed day (set unfinished) decays one tier; otherwise a clean new day.
-    if (pickIndex < 3) setStreak((s) => decayedStreak(s));
+    if (pickIndex < 3) {
+      setStreak((s) => {
+        const decayed = decayedStreak(s);
+        if (userId) void saveStreak(userId, decayed); // persist the decay
+        return decayed;
+      });
+    }
     setPickIndex(0);
     setTodaysPicks([]);
     setDecided(null);
@@ -182,10 +243,16 @@ export default function App() {
   // ---------- render helpers ----------
   const Fighter = ({ c, side }: { c: Company; side: "A" | "B" }) => {
     const cf = confidence(c, voteQ);
-    const won = decided && decided.winSide === side;
+    const selected = decided && decided.winSide === side;
     const delta = decided ? (side === "A" ? decided.dA : decided.dB) : 0;
+    const previewElo = decided ? (side === "A" ? decided.eloA : decided.eloB) : c.ratings[voteQ].elo;
     return (
-      <div className={`fighter${won ? " win" : ""}`} onClick={() => vote(side)}>
+      <div
+        className={`fighter${selected ? " win" : ""}`}
+        onClick={() => selectSide(side)}
+        role="button"
+        aria-pressed={!!selected}
+      >
         <div className={`tag ${cf === "Established" ? "est" : "prov"}`}>{cf}</div>
         <Logo c={c} cls="emoji" />
         <div className="nm">{c.name}</div>
@@ -196,7 +263,7 @@ export default function App() {
         {decided && (
           <>
             <div className="elo">
-              {QUESTIONS[voteQ].emoji} Elo {c.ratings[voteQ].elo}
+              {QUESTIONS[voteQ].emoji} Elo {previewElo}
             </div>
             <div className={`delta ${delta >= 0 ? "up" : "down"}`}>
               {delta >= 0 ? "▲ +" : "▼ "}
@@ -234,11 +301,14 @@ export default function App() {
         <div className="dl">
           <div className="dots">
             {[0, 1, 2].map((i) => (
-              <span key={i} className={`dot${i < pickIndex ? " done" : ""}`} />
+              <span
+                key={i}
+                className={`dot${i < pickIndex || (i === pickIndex && decided) ? " done" : ""}`}
+              />
             ))}
           </div>
           <div className="txt">
-            <b>{Math.max(0, 3 - pickIndex)}</b> picks left today · vote weight{" "}
+            <b>{Math.max(0, 3 - pickIndex - (decided ? 1 : 0))}</b> picks left today · vote weight{" "}
             <b>×{tier.mult.toFixed(2)}</b>
           </div>
         </div>
@@ -274,7 +344,7 @@ export default function App() {
               </span>
             ))}
           </div>
-          <button className="skip" onClick={() => nextMatch(true)}>
+          <button className="skip" onClick={() => newMatch()}>
             🤷 Can&apos;t decide — skip (free)
           </button>
           {decided && (
@@ -290,15 +360,18 @@ export default function App() {
                       : `Coin-flip call — ${w.name} edges it`;
                 })()}
               </div>
-              {pickIndex < 3 && (
-                <button className="nextbtn" onClick={() => nextMatch(false)}>
-                  Next pick →
-                </button>
-              )}
+              <button className="nextbtn" onClick={commitPick}>
+                {pickIndex >= 2 ? "Lock it in — see results →" : "Lock it in — next pick →"}
+              </button>
+              <button className="skip" onClick={() => setDecided(null)}>
+                ↩ tap a card to switch, or clear selection
+              </button>
             </>
           )}
           <p className="note">
-            Prototype logic ported to Next.js · logos via Clearbit · resets on refresh
+            {anonDisabled
+              ? "⚠ Anonymous sign-ins are disabled in Supabase — votes aren’t being recorded yet. Enable them in Authentication → Sign In / Providers."
+              : "Votes are recorded to your pseudonymous profile · logos via Clearbit"}
           </p>
         </section>
       )}
