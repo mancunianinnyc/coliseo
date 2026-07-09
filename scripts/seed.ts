@@ -33,10 +33,20 @@ async function main() {
 
     for (const c of companies) {
       const { rows } = await client.query(
-        `insert into companies (name, website, category, region, stage, blurb, gradient, status)
-         values ($1,$2,$3,$4,$5,$6,$7,'live')
+        `insert into companies
+           (name, website, category, region, stage, blurb, gradient, status,
+            logo_url, description, founded_year, headquarters, employees,
+            total_funding, valuation, founders, tags, links)
+         values ($1,$2,$3,$4,$5,$6,$7,'live',
+                 $8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
          returning id`,
-        [c.name, c.website, c.category, c.region, c.stage, c.blurb, c.gradient],
+        [
+          c.name, c.website, c.category, c.region, c.stage, c.blurb, c.gradient,
+          c.logoUrl ?? null, c.description ?? null, c.foundedYear ?? null,
+          c.headquarters ?? null, c.employees ?? null, c.totalFunding ?? null,
+          c.valuation ?? null, c.founders ?? null, c.tags ?? null,
+          c.links ? JSON.stringify(c.links) : null,
+        ],
       );
       const companyId = rows[0].id;
 

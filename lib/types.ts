@@ -11,6 +11,12 @@ export interface Rating {
 
 export type Stage = "Growth" | "Late";
 
+export interface CompanyLinks {
+  x?: string; // twitter/x handle URL
+  linkedin?: string;
+  crunchbase?: string;
+}
+
 export interface Company {
   id: number;
   name: string;
@@ -21,6 +27,19 @@ export interface Company {
   blurb: string;
   gradient: string; // CSS gradient fallback for the logo tile
   ratings: Record<QKey, Rating>;
+
+  // ---- Crunchbase-style profile fields (all optional; may be unset for
+  //      freshly submitted companies until enriched/verified) ----
+  logoUrl?: string | null; // self-hosted /logos/*.png or an external image URL
+  description?: string; // 1–3 sentence overview (longer than blurb)
+  foundedYear?: number | null;
+  headquarters?: string; // "San Francisco, USA"
+  employees?: string; // range, e.g. "5,001–10,000"
+  totalFunding?: string; // e.g. "$17.9B"
+  valuation?: string; // latest known, e.g. "$157B"
+  founders?: string[];
+  tags?: string[];
+  links?: CompanyLinks;
 }
 
 // One row per head-to-head vote. This log is append-only and never deleted —

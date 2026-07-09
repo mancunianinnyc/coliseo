@@ -1,4 +1,4 @@
-import type { Company, QKey, Rating } from "./types";
+import type { Company, CompanyLinks, QKey, Rating } from "./types";
 import { buildCompanies } from "./seed";
 import { supabase } from "./supabase";
 
@@ -11,7 +11,20 @@ interface CompanyRow {
   stage: "Growth" | "Late";
   blurb: string | null;
   gradient: string | null;
+  logo_url: string | null;
+  description: string | null;
+  founded_year: number | null;
+  headquarters: string | null;
+  employees: string | null;
+  total_funding: string | null;
+  valuation: string | null;
+  founders: string[] | null;
+  tags: string[] | null;
+  links: CompanyLinks | null;
 }
+
+const COMPANY_COLUMNS =
+  "id, name, website, category, region, stage, blurb, gradient, logo_url, description, founded_year, headquarters, employees, total_funding, valuation, founders, tags, links";
 
 interface RatingRow {
   company_id: number;
@@ -33,7 +46,7 @@ export async function loadCompanies(): Promise<Company[]> {
 
   const [{ data: companyRows, error: companyErr }, { data: ratingRows, error: ratingErr }] =
     await Promise.all([
-      supabase.from("companies").select("id, name, website, category, region, stage, blurb, gradient"),
+      supabase.from("companies").select(COMPANY_COLUMNS),
       supabase.from("ratings").select("company_id, dimension, elo, games, week_movement, season_start"),
     ]);
 
@@ -70,6 +83,16 @@ export async function loadCompanies(): Promise<Company[]> {
         G: ratings.G ?? emptyRating(),
         D: ratings.D ?? emptyRating(),
       },
+      logoUrl: c.logo_url,
+      description: c.description ?? undefined,
+      foundedYear: c.founded_year,
+      headquarters: c.headquarters ?? undefined,
+      employees: c.employees ?? undefined,
+      totalFunding: c.total_funding ?? undefined,
+      valuation: c.valuation ?? undefined,
+      founders: c.founders ?? undefined,
+      tags: c.tags ?? undefined,
+      links: c.links ?? undefined,
     };
   });
 }
