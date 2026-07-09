@@ -75,6 +75,9 @@ export default function App() {
   const [dim, setDim] = useState<Dim>("category");
   const [filter, setFilter] = useState<string>("All");
   const [showGrads, setShowGrads] = useState(false);
+  // The leaderboard is gated behind completing today's 3 picks. Persisted via
+  // the profile's last_active_date, so it stays unlocked on refresh for the day.
+  const [doneToday, setDoneToday] = useState(false);
   const [profileId, setProfileId] = useState<number | null>(null);
   const [form, setForm] = useState({ url: "", name: "", cat: "AI", reg: "US", blurb: "", logoUrl: "" });
   const [enrich, setEnrich] = useState<{ state: "idle" | "loading" | "ok" | "err"; msg: string }>({
@@ -100,7 +103,11 @@ export default function App() {
     if (!userId) return;
     let cancelled = false;
     loadProfile(userId).then((p) => {
-      if (!cancelled) setStreak(p.streak);
+      if (cancelled) return;
+      setStreak(p.streak);
+      // Already did today's 3 picks? Keep the tables unlocked for the day.
+      const today = new Date().toISOString().slice(0, 10);
+      if ((p.lastActive ?? "").slice(0, 10) === today) setDoneToday(true);
     });
     return () => {
       cancelled = true;
@@ -225,6 +232,7 @@ export default function App() {
         if (userId) void saveStreak(userId, bumped); // persist the day's streak
         return bumped;
       });
+      setDoneToday(true); // today's picks are in — unlock the tables
       setView("done");
     } else {
       newMatch(next, nextIndex);
@@ -251,6 +259,7 @@ export default function App() {
     setPickIndex(0);
     setTodaysPicks([]);
     setDecided(null);
+    setDoneToday(false); // new day — re-lock the tables until 3 picks are done
     setPair(nearestPair(companies, "V"));
     setView("vote");
   }
@@ -483,15 +492,33 @@ export default function App() {
           <div className="streakup">
             🔥 {streak} day streak · {tier.name}
           </div>
-          <p style={{ fontSize: 12.5 }}>Come back tomorrow to keep the streak alive.</p>
-          <button className="simday" onClick={simDay} style={{ marginTop: 8 }}>
+          <p style={{ fontSize: 12.5 }}>You&apos;ve unlocked today&apos;s tables. Come back tomorrow to keep the streak alive.</p>
+          <button className="nextbtn" onClick={() => setView("board")} style={{ marginTop: 6 }}>
+            🏆 See the leaderboard →
+          </button>
+          <button className="simday" onClick={simDay} style={{ marginTop: 10 }}>
             ▶ Simulate tomorrow
           </button>
         </section>
       )}
 
       {/* BOARD */}
-      {view === "board" && (
+      {view === "board" && !doneToday && (
+        <section className="locked">
+          <div className="lock-emoji">🔒</div>
+          <h2 className="sec">Today&apos;s tables are locked</h2>
+          <p className="lock-p">
+            The leaderboard is the daily reward — answer your <b>3 picks</b> first to unlock it.
+            <br />
+            <span className="lock-prog">{Math.min(pickIndex, 3)} of 3 done today</span>
+          </p>
+          <button className="nextbtn" onClick={() => setView("vote")}>
+            Answer today&apos;s picks →
+          </button>
+        </section>
+      )}
+
+      {view === "board" && doneToday && (
         <section>
           <div className="board-head">
             <h2 className="sec" style={{ margin: 0 }}>
@@ -849,9 +876,18 @@ export default function App() {
       )}
 
       <footer className="site-footer">
-        Made for fun by <b>Ross Garlick</b>. Contribute to the project:{" "}
-        <a href="https://github.com/mancunianinnyc/ConvictionELO" target="_blank" rel="noreferrer">
-          github.com/mancunianinnyc/ConvictionELO ↗
+        <span>Made for fun by Ross Garlick</span>
+        <a
+          className="gh-btn"
+          href="https://github.com/mancunianinnyc/ConvictionELO"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Contribute to the project on GitHub"
+          title="Contribute on GitHub"
+        >
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+          </svg>
         </a>
       </footer>
 
@@ -860,7 +896,7 @@ export default function App() {
           <span className="ic">⚔️</span>Vote
         </button>
         <button className={view === "board" || view === "profile" ? "active" : ""} onClick={() => setView("board")}>
-          <span className="ic">🏆</span>Tables
+          <span className="ic">{doneToday ? "🏆" : "🔒"}</span>Tables
         </button>
         <button className={view === "submit" ? "active" : ""} onClick={() => setView("submit")}>
           <span className="ic">➕</span>Submit
