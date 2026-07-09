@@ -462,8 +462,42 @@ export default function App() {
       ),
     [ranked, boardQ, catFilter, regFilter, stageFilter],
   );
+  const lockedPreviewRows = useMemo(() => ranked("ALL").slice(0, 5), [ranked]);
 
   // ---------- render helpers ----------
+  function cardFact(c: Company) {
+    if (c.totalFunding) return `Raised ${c.totalFunding}`;
+    if (c.foundedYear) return `Founded ${c.foundedYear}`;
+    if (c.headquarters) return `HQ ${c.headquarters}`;
+    if (c.employees) return `${c.employees} people`;
+    return `${c.stage}-stage ${c.category}`;
+  }
+
+  function pickInsight() {
+    if (!decided || !A || !B) return null;
+    const winner = decided.winSide === "A" ? A : B;
+    const loser = decided.winSide === "A" ? B : A;
+    const winnerDelta = decided.winSide === "A" ? decided.dA : decided.dB;
+    const winChance = Math.round(expected(winner, loser, voteQ) * 100);
+    const title =
+      winChance >= 65
+        ? "Consensus call"
+        : winChance <= 35
+          ? "Contrarian call"
+          : "Close call";
+    const detail =
+      winChance >= 65
+        ? `The rating model already leaned ${winner.name}, and your pick nudges it further.`
+        : winChance <= 35
+          ? `The rating model gave ${winner.name} only ${winChance}% odds here. That's the spicy call.`
+          : "The rating model had this almost even, so this is exactly the kind of vote that moves the table.";
+    return {
+      title,
+      detail,
+      meta: `${winner.name} over ${loser.name} · ${winnerDelta >= 0 ? "+" : ""}${winnerDelta} ${QUESTIONS[voteQ].label} Elo`,
+    };
+  }
+
   // The full company dossier body, shared by the Profile view and the vote-flow
   // peek sheet so both stay in sync. Caller supplies the surrounding chrome
   // (the .dossier card, a back button / a close button, etc.).
@@ -598,6 +632,7 @@ export default function App() {
     const selected = decided && decided.winSide === side;
     const delta = decided ? (side === "A" ? decided.dA : decided.dB) : 0;
     const previewElo = decided ? (side === "A" ? decided.eloA : decided.eloB) : c.ratings[voteQ].elo;
+    const fact = cardFact(c);
     return (
       <div
         className={`fighter${selected ? " win" : ""}`}
@@ -611,6 +646,7 @@ export default function App() {
           <div className="cat">
             {c.category} · {c.region} · {c.stage}
           </div>
+          <div className="factline">{fact}</div>
           <div className="blurb">{c.blurb}</div>
           <button
             type="button"
@@ -640,14 +676,14 @@ export default function App() {
             <button
               type="button"
               className="dunno-tag"
-              title={`I don't know ${c.name}`}
-              aria-label={`I don't know ${c.name}`}
+              title={`I am not familiar with ${c.name}`}
+              aria-label={`I am not familiar with ${c.name}`}
               onClick={(e) => {
                 e.stopPropagation();
                 markUnknown(c);
               }}
             >
-              🤷 <span>don&apos;t know</span>
+              🤷 <span>not familiar</span>
             </button>
           )}
         </div>
@@ -695,7 +731,7 @@ export default function App() {
         <header className="top">
         <div className="brand">
           <div className="logo">
-            <span className="spark">⚡</span> Conviction<b>ELO</b>
+            <img className="brand-mark" src="/convictionelo-mark.svg" alt="" /> Conviction<b>ELO</b>
           </div>
           <div className="tagline">Startup discovery, ranked by conviction</div>
         </div>
@@ -767,15 +803,29 @@ export default function App() {
           )}
           {decided && (
             <>
-              <div className="resultmsg">
+              <div className="result-card">
+                <div className="result-kicker">{QUESTIONS[voteQ].chip}</div>
+                <div className="result-title">
                 {(() => {
-                  const pct = Math.round(expected(A, B, voteQ) * 100);
                   const w = decided.winSide === "A" ? A : B;
+                  const l = decided.winSide === "A" ? B : A;
+                  const pct = Math.round(expected(w, l, voteQ) * 100);
                   return pct >= 70
                     ? `Chalk pick ✅ — ${w.name} was favoured`
                     : pct <= 35
                       ? `🚨 Upset! You backed the underdog ${w.name}`
                       : `Coin-flip call — ${w.name} edges it`;
+                })()}
+                </div>
+                {(() => {
+                  const insight = pickInsight();
+                  if (!insight) return null;
+                  return (
+                    <>
+                      <div className="result-meta">{insight.meta}</div>
+                      <p>{insight.detail}</p>
+                    </>
+                  );
                 })()}
               </div>
               <button className="nextbtn" onClick={commitPick}>
@@ -832,10 +882,31 @@ export default function App() {
           <div className="lock-emoji">🔒</div>
           <h2 className="sec">Today&apos;s tables are locked</h2>
           <p className="lock-p">
-            The leaderboard is the daily reward — answer your <b>3 picks</b> first to unlock it.
+            Complete today&apos;s <b>3 calls</b> to unlock the Top 25, movers, and company profiles.
             <br />
             <span className="lock-prog">{Math.min(pickIndex, 3)} of 3 done today</span>
           </p>
+          <div className="locked-preview" aria-hidden="true">
+            <div className="preview-label">Today&apos;s leaderboard preview</div>
+            <div className="preview-list">
+              {lockedPreviewRows.map((c, i) => (
+                <div key={c.id} className="row">
+                  <div className={`rk ${i < 3 ? "top" : ""}`}>{i + 1}</div>
+                  <Logo c={c} cls="em" />
+                  <div className="info">
+                    <div className="nm">{c.name}</div>
+                    <div className="cat">
+                      {c.category} · {c.region}
+                    </div>
+                  </div>
+                  <div className="score">
+                    <div className="val">{composite(c)}</div>
+                    <div className="mv flat">locked</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
           <button className="nextbtn" onClick={() => setView("vote")}>
             Answer today&apos;s picks →
           </button>
@@ -1309,7 +1380,13 @@ export default function App() {
           crowd&apos;s opinion, not fact, financial advice, or any endorsement.
         </p>
         <div className="footer-meta">
-          <span>Made for fun by Ross Garlick</span>
+          <span>
+            Vibecoded for fun by{" "}
+            <a className="footer-name" href="https://www.rossgarlick.com" target="_blank" rel="noreferrer">
+              Ross Garlick
+            </a>{" "}
+            and contributors
+          </span>
           <span className="footer-dot" aria-hidden="true">
             ·
           </span>

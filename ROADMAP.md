@@ -50,6 +50,12 @@ gating the first release.
 - **Vote-split insights** — "operators vs. investors disagreed on this one."
 - **Leagues / friends / invites** — social network effects.
 - **Community moderation tooling** — higher trust tiers unlock edit approval and abuse flagging, so moderation scales without a central team (the Lichess model).
+- **Bulk company upload (CSV / spreadsheet)** — seed many startups at once by dropping in a CSV/Excel export instead of filling the one-at-a-time form N times. The UX that makes this actually work:
+  - A **downloadable template** with the exact column headers, an example row, and the allowed Category / Region / Stage values — most bulk-import pain is schema guesswork, so hand people the schema up front.
+  - **Drag-and-drop** a `.csv`/`.xlsx`, parsed in the browser. Required columns: name, website, category, region; optional: blurb, logo, stage, founded, HQ, funding.
+  - A **validate-and-preview step before anything is submitted** — a row-by-row table flagging valid rows, warnings (unrecognised category/region), and errors (missing fields, invalid values, or a name already in the arena or pending). Fix in-file and re-drop, or drop the bad rows. Never a blind import.
+  - **Confirm → submit** through a batch `submit_companies_bulk` RPC (a set-based sibling of `submit_company`) that inserts every valid row as **pending** and returns a per-row result (new id / skipped reason); the batch then flows through the same moderation queue as single submissions, and logos backfill via the existing fetch fallback.
+  - **Guardrails so it can't flood moderation** — gate it behind a trusted/admin tier at first (it starts as a self-serve version of today's internal seed pipeline), with a batch-size cap and rate limit; open it to the public only once community moderation (above) can absorb the volume.
 
 ## 💭 Exploring
 - **Sustainability / business model** — keep the daily game and the code free and open, and monetize the *data layer*: paid access to analytics, historical ranking movements, and a database/API of the ecosystem (open-core, à la PostHog / Supabase — see the note below). The trusted, durable, comparable rankings are the asset.
