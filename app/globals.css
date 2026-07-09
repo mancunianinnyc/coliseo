@@ -244,6 +244,27 @@ nav.bottom button.active { color: var(--teal2); }
 .footer-dot { color: var(--line); }
 .footer-name { color: inherit; font-weight: 700; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 2px; transition: .15s; }
 .footer-name:hover { color: var(--teal2); text-decoration-color: var(--teal2); }
+.footer-legal-link { color: inherit; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 2px; }
+.footer-legal-link:hover { color: var(--teal2); text-decoration-color: var(--teal2); }
+
+/* Privacy & Terms document page (/legal). */
+.legal { max-width: 720px; margin: 0 auto; padding: 40px clamp(18px, 5vw, 28px) 80px; }
+.legal-back { display: inline-block; color: var(--teal2); font-weight: 800; font-size: 13px; text-decoration: none; margin-bottom: 24px; }
+.legal-back:hover { text-decoration: underline; text-underline-offset: 2px; }
+.legal-back-bottom { margin-top: 34px; }
+.legal-title { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: clamp(28px, 7vw, 38px); letter-spacing: -.5px; }
+.legal-meta { color: var(--muted); font-size: 13px; font-weight: 600; margin: 6px 0 22px; }
+.legal-lead { font-size: 15.5px; line-height: 1.65; color: var(--ink); margin-bottom: 8px; }
+.legal-h2 { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: 24px; margin: 34px 0 6px; padding-top: 22px; border-top: 1px solid var(--line); }
+.legal-h3 { font-weight: 800; font-size: 15px; margin: 20px 0 6px; }
+.legal p { font-size: 14.5px; line-height: 1.7; color: #3a3852; }
+.legal-list { margin: 6px 0 6px 2px; padding: 0; list-style: none; }
+.legal-list li { position: relative; padding-left: 20px; margin-bottom: 8px; font-size: 14.5px; line-height: 1.6; color: #3a3852; }
+.legal-list li::before { content: "·"; position: absolute; left: 6px; color: var(--teal2); font-weight: 900; }
+.legal a { color: var(--teal2); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+.legal a:hover { color: var(--teal); }
+.legal strong { font-weight: 800; color: var(--ink); }
+.legal-fine { font-size: 12.5px; color: var(--muted); font-style: italic; margin-top: 26px; }
 .gh-link { display: inline-flex; align-items: center; gap: 5px; color: var(--teal2); font-weight: 700; text-decoration: none; transition: .15s; }
 .gh-link svg { width: 14px; height: 14px; fill: currentColor; }
 .gh-link:hover { color: var(--teal); text-decoration: underline; text-underline-offset: 2px; }

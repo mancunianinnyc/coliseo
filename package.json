@@ -13,6 +13,7 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:pending": "tsx scripts/pending.ts",
     "db:reset-test-data": "tsx scripts/reset-test-data.ts && tsx scripts/seed.ts",
+    "db:reset-activity": "tsx scripts/reset-activity.ts",
     "db:retire": "tsx scripts/retire.ts",
     "logos:fetch": "tsx scripts/fetch-logos.ts",
     "logos:upgrade": "tsx scripts/upgrade-logos.ts",

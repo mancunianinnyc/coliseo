@@ -1519,6 +1519,9 @@ export default function App() {
             Contribute to ConvictionELO
           </a>
         </div>
+        <a className="footer-legal-link" href="/legal">
+          Privacy &amp; Terms
+        </a>
       </footer>
 
       <nav className="bottom">
