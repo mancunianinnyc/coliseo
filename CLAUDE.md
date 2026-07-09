@@ -10,7 +10,7 @@ ConvictionELO is a daily game where people vote on head-to-head startup matchups
 
 - **Next.js 14 (App Router) + TypeScript + React 18**
 - Plain CSS with design tokens in `app/globals.css` (no Tailwind yet — match the existing tokens if you add a framework)
-- **Supabase** (Postgres, auth, RLS) is the intended backend — schema in `supabase/schema.sql`, not yet wired to the UI
+- **Supabase** (Postgres, auth, RLS) is the backend — schema in `supabase/schema.sql`. Wired in: companies/ratings load from the DB, anonymous auth mints a pseudonymous identity, votes append to the `votes` log, and streak/tier persist to `profiles`. Server-side Elo application is still a TODO.
 - Deploy target: **Vercel** (needed for dynamic Open Graph share images)
 
 ## Project structure
@@ -26,9 +26,21 @@ lib/
   questions.ts      The 3 dimensions (Value / Growth / Workplace) + order
   elo.ts            Elo math, credibility tiers, composite score  ← pure, unit-testable
   seed.ts           18 seed startups with divergent per-dimension ratings
+  supabase.ts       Browser Supabase client (null when env not configured)
+  loadCompanies.ts  Loads companies + ratings from the DB (falls back to seed)
+  auth.ts           useSession(): anonymous sign-in + pseudonymous identity
+  profile.ts        Load/create profile, persist streak/tier
+  votes.ts          Append a head-to-head to the immutable votes log
 supabase/
   schema.sql        Tables + RLS policies (companies, ratings, votes, profiles, revisions)
+scripts/
+  apply-schema.ts   Apply schema.sql to the DB (npm run db:apply-schema)
+  seed.ts           Seed companies + ratings from lib/seed.ts (npm run db:seed)
+  reset-test-data.ts  Wipe votes/profiles/revisions before launch (npm run db:reset-test-data)
 ```
+
+**Environment note:** on Windows, keep this repo OUT of a OneDrive-synced folder —
+OneDrive fights Next.js over the `.next` build dir and cripples the dev server.
 
 ## How to run
 
@@ -37,7 +49,11 @@ npm install
 npm run dev      # http://localhost:3000
 ```
 
-The app currently runs fully client-side on seed data (no backend needed). State resets on refresh.
+With Supabase configured via `.env.local`, the app loads companies from the DB and
+signs the visitor in anonymously. Without it, the app falls back to in-memory seed data.
+
+**Before any public launch, see [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md)** — most
+importantly, run `npm run db:reset-test-data` to clear test votes/profiles.
 
 ## Conventions & guardrails
 
