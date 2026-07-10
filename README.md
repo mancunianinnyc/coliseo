@@ -49,7 +49,7 @@ To continue building in Lovable, Replit, or v0: share **`ConvictionELO-spec.md`*
 
 ## Production status
 
-- **GitHub:** `mancunianinnyc/ConvictionELO`
+- **GitHub:** `mancunianinnyc/coliseo`
 - **Vercel:** `convictionelo` Next.js project
 - **Supabase:** `ConvictionELO` in `ca-central-1`
 - **Launch hardening:** see `supabase/launch_hardening.sql` and
@@ -81,9 +81,9 @@ Startup ELO.md          original strategy blueprint
 
 ## Work on it with Claude Code
 
-Claude Code *can* write to and push to this repo (Cowork can't — that's why the files are staged here for you to push first). Once the initial files are in `mancunianinnyc/ConvictionELO`:
+Claude Code *can* write to and push to this repo (Cowork can't — that's why the files are staged here for you to push first). Once the initial files are in `mancunianinnyc/coliseo`:
 
-1. Open **Claude Code** and connect it to the `mancunianinnyc/ConvictionELO` repository (the GitHub Integration you already authorized powers this).
+1. Open **Claude Code** and connect it to the `mancunianinnyc/coliseo` repository (the GitHub Integration you already authorized powers this).
 2. It reads **`CLAUDE.md`** automatically for project context, stack, and conventions.
 3. Ask it to work on a task — it creates a branch, makes changes in an isolated environment, and opens a pull request you review and merge.
 

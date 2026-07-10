@@ -8,7 +8,7 @@ able to see where it's going — and shape it.
 
 **Want to influence it?** Open or 👍 an issue on GitHub. Items with the most
 community interest move up. See [CONTRIBUTING.md](./CONTRIBUTING.md), and
-[the wiki](https://github.com/mancunianinnyc/ConvictionELO/wiki/About) for the
+[the wiki](https://github.com/mancunianinnyc/coliseo/wiki/About) for the
 *why*.
 
 **Where we are right now:** the near-term focus is a lean **MVP** — get a
@@ -61,7 +61,7 @@ gating the first release.
 ## 💭 Exploring
 - **Sustainability / business model** — keep the daily game and the code free and open, and monetize the *data layer*: paid access to analytics, historical ranking movements, and a database/API of the ecosystem (open-core, à la PostHog / Supabase — see the note below). The trusted, durable, comparable rankings are the asset.
 - **Public read API** — let third parties build on the data (newsletters, bots, "ConvictionELO for [vertical]"); the free tier of the data layer above.
-- **New verticals** — the same "Elo over time for dispersed actors who compete only indirectly" applied to **VCs**, funds, agencies, or other industries. See [About](https://github.com/mancunianinnyc/ConvictionELO/wiki/About).
+- **New verticals** — the same "Elo over time for dispersed actors who compete only indirectly" applied to **VCs**, funds, agencies, or other industries. See [About](https://github.com/mancunianinnyc/coliseo/wiki/About).
 - **Latin America focus** — a credible, open database of the LatAm startup ecosystem, which barely exists today.
 - **Prediction-market layer** — the betting adjacency is real, but the regulatory surface is heavy; strictly a phase-3+ consideration, and only once the ranking itself is trusted.
 

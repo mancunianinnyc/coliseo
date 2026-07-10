@@ -3,7 +3,7 @@
 Thanks for being here. Coliseo is meant to take on a life of its own, and
 that only works if contributing is easy. There are **three ways to help** — pick
 the lane that fits. (New to the project? Read the
-[About](https://github.com/mancunianinnyc/ConvictionELO/wiki/About) page first.)
+[About](https://github.com/mancunianinnyc/coliseo/wiki/About) page first.)
 
 ## 1. 📊 Improve the data — no code needed
 

@@ -1718,7 +1718,7 @@ export default function App() {
               It&apos;s all open source —{" "}
               <a
                 className="footer-name"
-                href="https://github.com/mancunianinnyc/ConvictionELO/blob/main/METHODOLOGY.md"
+                href="https://github.com/mancunianinnyc/coliseo/blob/main/METHODOLOGY.md"
                 target="_blank"
                 rel="noreferrer"
               >
@@ -1772,7 +1772,7 @@ export default function App() {
           </span>
           <a
             className="gh-link"
-            href="https://github.com/mancunianinnyc/ConvictionELO"
+            href="https://github.com/mancunianinnyc/coliseo"
             target="_blank"
             rel="noreferrer"
           >

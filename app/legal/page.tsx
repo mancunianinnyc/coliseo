@@ -99,11 +99,11 @@ export default function LegalPage() {
       <h3 className="legal-h3">Open source</h3>
       <p>
         Coliseo is released under the{" "}
-        <a href="https://github.com/mancunianinnyc/ConvictionELO/blob/main/LICENSE" target="_blank" rel="noreferrer">
+        <a href="https://github.com/mancunianinnyc/coliseo/blob/main/LICENSE" target="_blank" rel="noreferrer">
           AGPL-3.0 license
         </a>
         . The code — including the rating math — is fully auditable on{" "}
-        <a href="https://github.com/mancunianinnyc/ConvictionELO" target="_blank" rel="noreferrer">
+        <a href="https://github.com/mancunianinnyc/coliseo" target="_blank" rel="noreferrer">
           GitHub
         </a>
         .
@@ -122,7 +122,7 @@ export default function LegalPage() {
           Ross Garlick
         </a>{" "}
         or open an issue on{" "}
-        <a href="https://github.com/mancunianinnyc/ConvictionELO/issues" target="_blank" rel="noreferrer">
+        <a href="https://github.com/mancunianinnyc/coliseo/issues" target="_blank" rel="noreferrer">
           GitHub
         </a>
         .
