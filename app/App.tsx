@@ -60,6 +60,12 @@ interface Pick {
 // but out of voting and the live tables.
 const isActive = (c: Company) => (c.lifecycle ?? "active") === "active";
 
+// Websites are stored as bare domains (e.g. "openai.com") and the app adds the
+// scheme. Strip any accidental scheme / trailing slash so a stray "https://…"
+// value can never produce a broken "https://https://…" link.
+const webDomain = (w: string) => (w ?? "").trim().replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+const webHref = (w: string) => `https://${webDomain(w)}`;
+
 export default function App() {
   const { userId, anonDisabled } = useSession();
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -566,8 +572,8 @@ export default function App() {
             <div className="cat">
               {c.category} · {c.region} · {c.stage}-stage
             </div>
-            <a className="weblink" href={`https://${c.website}`} target="_blank" rel="noreferrer">
-              {c.website} ↗
+            <a className="weblink" href={webHref(c.website)} target="_blank" rel="noreferrer">
+              {webDomain(c.website)} ↗
             </a>
           </div>
         </div>
@@ -637,7 +643,7 @@ export default function App() {
         </div>
 
         <div className="links-row">
-          <a href={`https://${c.website}`} target="_blank" rel="noreferrer" className="linkbtn">
+          <a href={webHref(c.website)} target="_blank" rel="noreferrer" className="linkbtn">
             🌐 Website
           </a>
           {c.links?.x && (

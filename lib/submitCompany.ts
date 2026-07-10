@@ -22,9 +22,13 @@ export async function submitCompany(
 ): Promise<SubmitCompanyOutcome> {
   if (!supabase) return { ok: false, error: "no-backend", noBackend: true };
 
+  // Store a bare domain — the app prepends "https://" when linking, so a scheme
+  // here would produce a broken "https://https://…" link on the profile.
+  const website = input.website.trim().replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+
   const { data, error } = await supabase.rpc("submit_company", {
     p_name: input.name,
-    p_website: input.website,
+    p_website: website,
     p_category: input.category,
     p_region: input.region,
     p_blurb: input.blurb ?? null,
