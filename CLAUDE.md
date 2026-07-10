@@ -4,7 +4,7 @@ Project guide for Claude Code / AI agents working in this repo. Read this first,
 
 ## What this is
 
-Coliseo (formerly ConvictionELO) is a daily game where people vote on head-to-head startup matchups. Each vote nudges a live Elo rating (three independent ratings per company: **Value**, **Growth**, **Workplace**), and daily play builds a streak → credibility tier → vote weight. See `ConvictionELO-spec.md` for the complete spec (mechanics, roadmap, design tokens, Supabase schema) — it is the source of truth.
+Coliseo (formerly ConvictionELO) is a daily game where people vote on head-to-head startup matchups. Each vote nudges a live Elo rating (three independent ratings per company: **Conviction**, **Momentum**, **Talent**), and daily play builds a streak → credibility tier → vote weight. See `ConvictionELO-spec.md` for the complete spec (mechanics, roadmap, design tokens, Supabase schema) — it is the source of truth.
 
 ## Stack
 
@@ -23,7 +23,7 @@ app/
   globals.css       Design tokens + component styles
 lib/
   types.ts          Company, Rating, Vote types
-  questions.ts      The 3 dimensions (Value / Growth / Workplace) + order
+  questions.ts      The 3 dimensions (Conviction / Momentum / Talent) + order
   elo.ts            Elo math, credibility tiers, composite score  ← pure, unit-testable
   seed.ts           18 seed startups with divergent per-dimension ratings
   supabase.ts       Browser Supabase client (null when env not configured)

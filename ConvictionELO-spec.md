@@ -29,9 +29,9 @@ Each daily set walks the user through one pick per dimension, in order:
 
 | # | Dimension | Question shown | Feeds table |
 |---|-----------|----------------|-------------|
-| 1 | **Value** | "Which will be *worth more* in 10 years?" | 💰 Value |
-| 2 | **Growth** | "Which will *grow faster* this year?" | 📈 Growth |
-| 3 | **Workplace** | "Which would you *rather work at* for the next 10 years?" | 💼 Workplace |
+| 1 | **Conviction** | "Which would you *10x your money* on?" | 🚀 Conviction |
+| 2 | **Momentum** | "Which is *actually winning* right now?" | 🔥 Momentum |
+| 3 | **Talent** | "Which would you *quit your job* to join?" | 🏃 Talent |
 
 - Each dimension maintains its **own independent Elo rating** per company. A company can be #1 on Workplace but #11 on Growth — that divergence is itself content.
 - The **Workplace** question is deliberately doing double duty: it's a proxy for durability/staying power *and* culture/desirability.

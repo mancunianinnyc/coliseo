@@ -37,7 +37,7 @@ To continue building in Lovable, Replit, or v0: share **`ConvictionELO-spec.md`*
 ## Decisions locked in
 
 - **Name:** ConvictionELO · **Domain (mock):** convictionelo.com
-- **Three dimensions:** Value, Growth, Workplace — each its own Elo; a single equal-weighted **Overall** composite table on top.
+- **Three dimensions:** Conviction, Momentum, Talent — each its own Elo; a single equal-weighted **Overall** composite table on top.
 - **Daily loop:** 3 picks/day, single-tap, one per dimension.
 - **Retention:** streak → credibility tier (Rookie→Legend) → vote weight. Missed day decays one tier (not a full reset).
 - **Design:** light & airy, teal/sky accents (no purple), Fraunces + Space Grotesk.

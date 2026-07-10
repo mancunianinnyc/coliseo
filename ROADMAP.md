@@ -1,8 +1,8 @@
 # Coliseo — Public Roadmap
 
 Coliseo is a daily game where people vote on head-to-head startup matchups,
-and every vote nudges a live Elo rating across three dimensions — **Value**,
-**Growth**, and **Workplace**. This roadmap is public on purpose: the goal is for
+and every vote nudges a live Elo rating across three dimensions — **Conviction**,
+**Momentum**, and **Talent**. This roadmap is public on purpose: the goal is for
 the product to take on a life of its own, and that starts with everyone being
 able to see where it's going — and shape it.
 
@@ -22,7 +22,7 @@ gating the first release.
 ---
 
 ## ✅ Shipped
-- **Daily vote loop** — 3 picks a day, one per dimension (Value / Growth / Workplace); tap to choose, provisional select-then-confirm so you can change your mind.
+- **Daily vote loop** — 3 picks a day, one per dimension (Conviction / Momentum / Talent); tap to choose, provisional select-then-confirm so you can change your mind.
 - **Leaderboards** — Overall + per-dimension tables, filterable by category / region / stage.
 - **Pseudonymous accounts** — anonymous auth (no PII); daily streak → credibility tier → vote weight.
 - **Server-authoritative scoring** — the `cast_vote` Postgres function (`supabase/cast_vote.sql`) validates each vote, applies the Elo atomically, and enforces the 3-picks-per-day limit. Ratings cannot be forged client-side.
@@ -32,7 +32,7 @@ gating the first release.
 - **"I don't know this company"** — a per-company obscurity signal, separate from a toss-up skip.
 - **Eligibility & lifecycle** — only private, venture-backed, alive companies compete; those that IPO / get acquired / shut down *graduate* into an archived hall of fame (excluded from the rankings, profile preserved).
 - **Live in production** — deployed and playable, with a preview/staging environment for iterating safely before each release.
-- **First-run onboarding** — a one-time, dismissible pop-up on a visitor's first load that explains the whole loop in a few seconds (pick a winner; 3 picks a day, one each for Value / Growth / Workplace; every vote moves a live rating; finish the day to unlock the leaderboard).
+- **First-run onboarding** — a one-time, dismissible pop-up on a visitor's first load that explains the whole loop in a few seconds (pick a winner; 3 picks a day, one each for Conviction / Momentum / Talent; every vote moves a live rating; finish the day to unlock the leaderboard).
 
 ## 🔜 Next — a credible MVP (what a small group needs)
 - **Data-quality pass** — verify the hand-seeded companies (founders, funding, HQ, logos, dead links) so the rankings start from trustworthy facts.

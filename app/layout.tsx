@@ -4,11 +4,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Coliseo — Head-to-head startup ranking & discovery",
   description:
-    "Head-to-head startup ranking & discovery. Vote on startup matchups across Value, Growth & Workplace — discover companies you didn't know, and see how the crowd really ranks them.",
+    "Head-to-head startup ranking & discovery. Vote on startup matchups across Conviction, Momentum & Talent — discover companies you didn't know, and see how the crowd really ranks them.",
   openGraph: {
     title: "Coliseo — Head-to-head startup ranking & discovery",
     description:
-      "Vote on head-to-head startup matchups across Value, Growth & Workplace — discover new companies and see how the crowd ranks them.",
+      "Vote on head-to-head startup matchups across Conviction, Momentum & Talent — discover new companies and see how the crowd ranks them.",
   },
 };
 

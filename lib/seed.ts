@@ -41,8 +41,8 @@ function links(s: SeedCompany): CompanyLinks {
   };
 }
 
-// Builds the full Company objects from the raw seed data. Value Elo is the base;
-// Growth and Workplace get a modest, deterministic divergence so the three
+// Builds the full Company objects from the raw seed data. Conviction Elo is the
+// base; Momentum and Talent get a modest, deterministic divergence so the three
 // tables tell slightly different stories at launch — real votes then take over.
 export function buildCompanies(): Company[] {
   return COMPANIES.map((s, i) => {

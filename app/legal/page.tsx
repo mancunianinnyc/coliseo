@@ -39,7 +39,7 @@ export default function LegalPage() {
       <ul className="legal-list">
         <li>
           <strong>Your votes</strong> — which company you picked in each head-to-head, the dimension
-          (Value / Growth / Workplace), and when.
+          (Conviction / Momentum / Talent), and when.
         </li>
         <li>
           <strong>Your progress</strong> — your daily streak and credibility tier.

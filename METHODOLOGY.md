@@ -17,16 +17,16 @@ you can see how it's made.
 Not popularity, and not our opinion — **the crowd's conviction**. Every company
 carries a live rating on three independent questions:
 
-- **💰 Value** — which will be worth more in 10 years?
-- **📈 Growth** — which will grow faster this year?
-- **💼 Workplace** — which would you rather work at?
+- **🚀 Conviction** — which would you 10x your money on?
+- **🔥 Momentum** — which is actually winning right now?
+- **🏃 Talent** — which would you quit your job to join?
 
 A company can lead on one and trail on another. The three ratings are kept
 completely separate.
 
 ## The daily game
 
-- Each **day asks one question**, rotating through Value → Growth → Workplace so
+- Each **day asks one question**, rotating through Conviction → Momentum → Talent so
   everyone plays the same question on the same day.
 - You get **three rounds a day**, played "king of the hill": you pick a winner,
   that company **stays on** and faces a fresh challenger, and so on. Three votes,

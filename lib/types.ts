@@ -1,6 +1,6 @@
 // Core domain types for Coliseo.
 
-export type QKey = "V" | "G" | "D"; // Value | Growth | Workplace
+export type QKey = "V" | "G" | "D"; // Conviction | Momentum | Talent
 
 export interface Rating {
   elo: number;
