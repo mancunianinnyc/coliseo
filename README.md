@@ -10,6 +10,7 @@ A daily game where people vote on head-to-head startup matchups. Each vote nudge
 
 | File | What it is |
 |------|------------|
+| **[METHODOLOGY.md](./METHODOLOGY.md)** | Plain-English explanation of how the scoring works — the Elo math, vote weighting, fair matchmaking, and the exact formulas. "Check our math" for a trust product. |
 | **[ConvictionELO-spec.md](./ConvictionELO-spec.md)** | The single source of truth. Full product spec, mechanics, Elo math, data model, design tokens, recommended stack, roadmap, and a ready-to-paste bootstrap prompt for Lovable / Replit / v0. **Read this first.** |
 | **[startup-elo-mvp.html](./startup-elo-mvp.html)** | The working interactive prototype. Just double-click to open in any browser — no install, no backend. State resets on refresh. |
 | **[Startup ELO.md](./Startup%20ELO.md)** | The original strategy blueprint — the deeper rationale and citations behind every product decision. |

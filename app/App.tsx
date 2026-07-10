@@ -30,7 +30,7 @@ const STAGES = ["Early", "Growth", "Late"] as const;
 
 // First-run onboarding is shown once per browser. Bump the version suffix to
 // re-show the explainer after a material change to its copy.
-const ONBOARD_KEY = "ce_onboarded_v1";
+const ONBOARD_KEY = "ce_onboarded_v2";
 
 function Logo({ c, cls }: { c: Company; cls: string }) {
   return (
@@ -945,8 +945,8 @@ export default function App() {
           <div className="big">✅</div>
           <h2>That&apos;s your 3 for today</h2>
           <p>
-            You&apos;ve used today&apos;s picks — one per dimension. Come back tomorrow for three fresh
-            matchups and to keep your streak alive.
+            You&apos;ve played today&apos;s three rounds. Come back tomorrow for a fresh question and to
+            keep your streak alive.
           </p>
           <button className="nextbtn" onClick={() => setView("board")} style={{ marginTop: 10 }}>
             🏆 See the leaderboard →
@@ -1466,21 +1466,23 @@ export default function App() {
               <li>
                 <span className="onboard-ic">⚔️</span>
                 <span>
-                  <b>Pick a winner.</b> Two startups go head-to-head — tap the one you back.
+                  <b>Back a winner.</b> Two startups face off — tap the one you believe in (not just the
+                  one you&apos;ve heard of).
                 </span>
               </li>
               <li>
-                <span className="onboard-ic">🎯</span>
+                <span className="onboard-ic">🔥</span>
                 <span>
-                  <b>Three picks a day,</b> one per question: 💰 worth more in 10 years · 📈 grows faster this
-                  year · 💼 you&apos;d rather work at.
+                  <b>King of the hill.</b> Your pick stays on and takes on a fresh challenger — three
+                  quick rounds a day.
                 </span>
               </li>
               <li>
                 <span className="onboard-ic">📊</span>
                 <span>
-                  <b>Your vote moves a live rating.</b> Finish today&apos;s three to unlock the leaderboard —
-                  come back daily to build a streak.
+                  <b>One question a day, rotating:</b> 💰 worth more in 10 years, 📈 grows faster this
+                  year, or 💼 better to work at. Every vote moves a live rating; finish your three to
+                  unlock the leaderboard.
                 </span>
               </li>
             </ol>
@@ -1507,8 +1509,8 @@ export default function App() {
               That&apos;s your <span>3 for today</span>
             </h2>
             <p className="onboard-sub">
-              Three picks a day, one per dimension — that&apos;s the whole point of the streak. Fresh
-              matchups unlock tomorrow.
+              Three rounds a day, then a fresh question tomorrow — scarcity is what makes each pick
+              count (and keeps your streak alive).
             </p>
             <button
               className="nextbtn onboard-cta"
@@ -1588,11 +1590,11 @@ export default function App() {
               It&apos;s all open source —{" "}
               <a
                 className="footer-name"
-                href="https://github.com/mancunianinnyc/ConvictionELO"
+                href="https://github.com/mancunianinnyc/ConvictionELO/blob/main/METHODOLOGY.md"
                 target="_blank"
                 rel="noreferrer"
               >
-                check our math
+                read the full methodology
               </a>
               .
             </p>
