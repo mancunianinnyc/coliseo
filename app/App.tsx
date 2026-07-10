@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Company, QKey } from "@/lib/types";
 import { QUESTIONS, QORDER } from "@/lib/questions";
 import { loadCompanies } from "@/lib/loadCompanies";
@@ -53,6 +53,8 @@ interface Pick {
   q: QKey;
   win: string;
   lose: string;
+  winId: number;
+  loseId: number;
 }
 
 // Crisp line icons for the bottom nav (stroke = currentColor, so they inherit
@@ -143,6 +145,11 @@ export default function App() {
     eloB: number; // preview Elo shown on card B
   }>(null);
   const [todaysPicks, setTodaysPicks] = useState<Pick[]>([]);
+  const [shareMsg, setShareMsg] = useState<string | null>(null);
+  // The current step in the daily run (the live matchup, sitting below the trail
+  // of completed rounds). We scroll it to the top on each new round so the flow
+  // moves naturally downward instead of snapping the user back up the page.
+  const activeStepRef = useRef<HTMLDivElement>(null);
   const [boardQ, setBoardQ] = useState<BoardQ>("ALL");
   // Independent multi-axis Tables filters (category AND region AND stage), each
   // defaulting to "All". They live behind the Filter sheet so the default board
@@ -247,6 +254,20 @@ export default function App() {
       );
     }
   }, [isDecided, view]);
+
+  // On advancing to rounds 2 and 3, glide the just-earned breadcrumb to the top
+  // of the viewport, so the user actually SEES "✓ you backed X" and then the next
+  // matchup right below it — the run reads as one continuous downward journey.
+  // (Scrolling the matchup itself to the top would push the new breadcrumb off
+  // the top edge, which is why it felt invisible.) Round 1 is left alone.
+  useEffect(() => {
+    if (view === "vote" && pickIndex > 0 && pickIndex < 3) {
+      requestAnimationFrame(() => {
+        const crumb = document.querySelector(".trail .tnode:last-child");
+        (crumb ?? activeStepRef.current)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }, [pickIndex, view]);
 
   const tier = tierFor(streak);
   // One question per day, rotating by UTC calendar day so everyone gets the same
@@ -378,7 +399,10 @@ export default function App() {
     // fallback when there's no backend or signed-in user).
     applyElo(winner, loser, qk, tier.mult);
     setCompanies(next);
-    setTodaysPicks((p) => [...p, { q: qk, win: winner.name, lose: loser.name }]);
+    setTodaysPicks((p) => [
+      ...p,
+      { q: qk, win: winner.name, lose: loser.name, winId: winnerId, loseId: loserId },
+    ]);
     setDecided(null);
 
     // Authoritative server record + Elo. Reconcile local ratings to the values
@@ -456,6 +480,30 @@ export default function App() {
     setDoneToday(false); // new day — re-lock the tables until 3 picks are done
     newMatch(); // fresh gauntlet: two comparable companies on the day's question
     setView("vote");
+  }
+
+  // Share today's three calls. Uses the native share sheet where available
+  // (mobile), and falls back to copying a text summary to the clipboard on
+  // desktop. This is the seed of the dynamic share-image / OG-card growth loop.
+  function shareCalls() {
+    const lines = todaysPicks
+      .map((p) => `${QUESTIONS[p.q].label}: ${p.win} > ${p.lose}`)
+      .join("\n");
+    const text = `My Coliseo calls today\n${lines}\n🔥 ${streak}-day streak`;
+    const url = "https://convictionelo.vercel.app";
+    if (typeof navigator !== "undefined" && navigator.share) {
+      void navigator.share({ title: "Coliseo", text, url }).catch(() => {});
+      return;
+    }
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      void navigator.clipboard.writeText(`${text}\n${url}`).then(
+        () => {
+          setShareMsg("Copied — paste it anywhere");
+          setTimeout(() => setShareMsg(null), 2400);
+        },
+        () => setShareMsg("Couldn’t copy automatically"),
+      );
+    }
   }
 
   // Close the first-run explainer and remember it, so it never shows again on
@@ -701,7 +749,7 @@ export default function App() {
           </div>
         )}
 
-        <div className="dossier-sub">📊 ConvictionELO ratings</div>
+        <div className="dossier-sub">📊 Coliseo ratings</div>
         <div className="vr">
           <span className="q">🏆 Overall {isActive(c) ? "rank" : "(final)"}</span>
           <span className="p">
@@ -903,9 +951,9 @@ export default function App() {
         <header className="top">
         <div className="brand">
           <div className="logo">
-            <img className="brand-mark" src="/convictionelo-mark.svg" alt="" /> Conviction<b>ELO</b>
+            <img className="brand-mark" src="/coliseo-mark.svg" alt="" /> Coliseo
           </div>
-          <div className="tagline">Startup discovery, ranked by conviction</div>
+          <div className="tagline">Head-to-Head Startup Ranking &amp; Discovery</div>
         </div>
         <div className="cred">
           <div className="tier" style={{ background: tier.color }}>
@@ -954,7 +1002,28 @@ export default function App() {
         </section>
       )}
       {view === "vote" && !doneToday && (
-        <section>
+        <section className="run">
+          {/* Trail: each completed round collapses into a breadcrumb, and the
+              live matchup renders below it — so the day reads as one continuous
+              downward journey through the 3 rounds rather than resetting up top. */}
+          {todaysPicks.length > 0 && (
+            <div className="trail">
+              {todaysPicks.map((p, i) => (
+                <div className="tnode" key={i}>
+                  <span className="tdot" aria-hidden="true">✓</span>
+                  <div className="tcard">
+                    <span className="tk">
+                      Round {i + 1} · {QUESTIONS[p.q].label}
+                    </span>
+                    <span className="tpick">
+                      <b>{p.win}</b> <span className="tover">over</span> {p.lose}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="step" ref={activeStepRef}>
           <div className="qbar">
             <div className="k">
               Pick {Math.min(pickIndex, 2) + 1} of 3 · {QUESTIONS[voteQ].label}
@@ -1013,40 +1082,99 @@ export default function App() {
               ? "⚠ Anonymous sign-ins are disabled in Supabase — votes aren’t being recorded yet. Enable them in Authentication → Sign In / Providers."
               : `Votes are recorded to your pseudonymous profile · ${companies.length} startups and counting`}
           </p>
+          </div>
         </section>
       )}
 
-      {/* DONE */}
-      {view === "done" && (
-        <section className="done-card">
-          <div className="big">🎯</div>
-          <h2>Daily set complete!</h2>
-          <p>Three calls, three dimensions. Here&apos;s how you voted today:</p>
-          <div className="verdictbox">
-            {todaysPicks.map((p, i) => (
-              <div className="vr" key={i}>
-                <span className="q">{QUESTIONS[p.q].chip}</span>
-                <span className="p">
-                  {p.win}{" "}
-                  <span style={{ color: "var(--muted)", fontWeight: 600 }}>over {p.lose}</span>
-                </span>
+      {/* DONE — a champion-centric card built as a screenshot-ready share object
+          (the visual blueprint for the future dynamic OG / social image). The
+          day's gauntlet crowns one company; the card tells that story. */}
+      {view === "done" &&
+        (() => {
+          const last = todaysPicks[todaysPicks.length - 1];
+          const champId = last?.winId;
+          const champ = champId != null ? byId.get(champId) : undefined;
+          const champName = last?.win ?? "";
+          const dimLabel = todaysPicks.length ? QUESTIONS[todaysPicks[0].q].label : "";
+          const dateStr = new Date().toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          });
+          // Everyone who stepped into the arena today except the champion, in the
+          // order they first appeared — the field the champion outlasted.
+          const seen = new Set<number>();
+          const outlasted: { id: number; name: string }[] = [];
+          for (const p of todaysPicks) {
+            for (const [id, name] of [
+              [p.winId, p.win],
+              [p.loseId, p.lose],
+            ] as [number, string][]) {
+              if (id !== champId && !seen.has(id)) {
+                seen.add(id);
+                outlasted.push({ id, name });
+              }
+            }
+          }
+          return (
+            <section className="done-wrap">
+              <div className="done-eyebrow">🏆 Daily set complete</div>
+              <div className="sharecard champ">
+                <div className="sc-top">
+                  <span className="sc-kicker">Today&apos;s gauntlet · {dimLabel}</span>
+                  <span className="sc-date">{dateStr}</span>
+                </div>
+                <div className="sc-hero">
+                  <div className="sc-crown" aria-hidden="true">
+                    👑
+                  </div>
+                  {champ && <Logo c={champ} cls="sc-hero-logo" />}
+                  <div className="sc-hero-name">{champName}</div>
+                  <div className="sc-hero-sub">My pick — last one standing</div>
+                </div>
+                {outlasted.length > 0 && (
+                  <div className="sc-beat">
+                    <span className="sc-beat-label">Outlasted</span>
+                    <div className="sc-beat-row">
+                      {outlasted.map((c) => {
+                        const co = byId.get(c.id);
+                        return (
+                          <span className="sc-chip" key={c.id}>
+                            {co && <Logo c={co} cls="sc-clogo" />}
+                            <span>{c.name}</span>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                <div className="sc-foot">
+                  <span className="sc-streak">
+                    🔥 {streak}-day streak · {tier.name}
+                  </span>
+                  <span className="sc-brandmark">
+                    <img className="sc-mark" src="/coliseo-mark.svg" alt="" /> Coliseo
+                  </span>
+                </div>
               </div>
-            ))}
-          </div>
-          <div className="streakup">
-            🔥 {streak} day streak · {tier.name}
-          </div>
-          <p style={{ fontSize: 12.5 }}>You&apos;ve unlocked today&apos;s tables. Come back tomorrow to keep the streak alive.</p>
-          <button className="nextbtn" onClick={() => setView("board")} style={{ marginTop: 6 }}>
-            🏆 See the leaderboard →
-          </button>
-          {process.env.NODE_ENV !== "production" && (
-            <button className="simday" onClick={simDay} style={{ marginTop: 10 }}>
-              ▶ Simulate tomorrow
-            </button>
-          )}
-        </section>
-      )}
+              <button className="nextbtn" onClick={shareCalls} style={{ marginTop: 16 }}>
+                ↗ Share my calls
+              </button>
+              <button className="sharebtn" onClick={() => setView("board")}>
+                🏆 See the leaderboard →
+              </button>
+              <p className="done-note" aria-live="polite">
+                {shareMsg ??
+                  "You’ve unlocked today’s tables. Come back tomorrow to keep the streak alive."}
+              </p>
+              {process.env.NODE_ENV !== "production" && (
+                <button className="simday" onClick={simDay} style={{ marginTop: 4 }}>
+                  ▶ Simulate tomorrow
+                </button>
+              )}
+            </section>
+          );
+        })()}
 
       {/* BOARD */}
       {view === "board" && !doneToday && (
@@ -1459,7 +1587,7 @@ export default function App() {
           <div className="onboard-card" onClick={(e) => e.stopPropagation()}>
             <div className="onboard-eyebrow">Welcome</div>
             <h2 id="onboard-title" className="onboard-title">
-              Rank startups by <span>conviction</span>
+              Rank startups <span>head-to-head</span>
             </h2>
             <p className="onboard-sub">A 30-second daily game. Here&apos;s the whole thing:</p>
             <ol className="onboard-steps">
@@ -1626,9 +1754,10 @@ export default function App() {
 
       <footer className="site-footer">
         <p className="footer-legal">
-          Company details are compiled from public sources and may be incomplete, inaccurate, or out
-          of date; they&apos;re revised over time as better information surfaces. Ratings reflect the
-          crowd&apos;s opinion, not fact, financial advice, or any endorsement.
+          Crowd opinions — not facts, financial advice, or endorsement.{" "}
+          <a className="footer-why" href="/legal">
+            Why &amp; how it works →
+          </a>
         </p>
         <div className="footer-meta">
           <span>
@@ -1650,7 +1779,7 @@ export default function App() {
             <svg viewBox="0 0 16 16" aria-hidden="true">
               <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
             </svg>
-            Contribute to ConvictionELO
+            Contribute to Coliseo
           </a>
         </div>
         <a className="footer-legal-link" href="/legal">

@@ -1,4 +1,7 @@
-# ConvictionELO — Product Spec & Build Handoff
+# Coliseo — Product Spec & Build Handoff
+
+> **Rebranded July 2026:** this product is now **Coliseo** (tagline: *Head-to-Head Startup Ranking & Discovery*). It was previously "ConvictionELO"; older mentions of that name and the "conviction" double-meaning below are historical. The Colosseum/arena metaphor now carries the brand.
+
 
 *Last updated: 7 July 2026. This doc is the single source of truth for the ConvictionELO MVP. It's written to be pasted into or read by another builder (Lovable, Replit, v0, a developer) to continue iterating. A working front-end prototype exists: `startup-elo-mvp.html` (open in any browser — no backend, state resets on refresh).*
 

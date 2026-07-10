@@ -1,4 +1,4 @@
--- ConvictionELO — Supabase schema (starting point)
+-- Coliseo — Supabase schema (starting point)
 -- Public reads are open; all writes are role-gated via RLS policies.
 -- Run in the Supabase SQL editor, or manage via `supabase migration`.
 

@@ -1,10 +1,10 @@
-# CLAUDE.md — ConvictionELO
+# CLAUDE.md — Coliseo
 
-Project guide for Claude Code / AI agents working in this repo. Read this first, then `ConvictionELO-spec.md` for full product detail.
+Project guide for Claude Code / AI agents working in this repo. Read this first, then `ConvictionELO-spec.md` for full product detail. (The product was renamed from ConvictionELO to **Coliseo** in July 2026; some internal filenames, the GitHub repo, and the Vercel project still carry the old `convictionelo` slug until those external resources are renamed.)
 
 ## What this is
 
-ConvictionELO is a daily game where people vote on head-to-head startup matchups. Each vote nudges a live Elo rating (three independent ratings per company: **Value**, **Growth**, **Workplace**), and daily play builds a streak → credibility tier → vote weight. See `ConvictionELO-spec.md` for the complete spec (mechanics, roadmap, design tokens, Supabase schema) — it is the source of truth. `startup-elo-mvp.html` is the original single-file prototype that this app is ported from.
+Coliseo (formerly ConvictionELO) is a daily game where people vote on head-to-head startup matchups. Each vote nudges a live Elo rating (three independent ratings per company: **Value**, **Growth**, **Workplace**), and daily play builds a streak → credibility tier → vote weight. See `ConvictionELO-spec.md` for the complete spec (mechanics, roadmap, design tokens, Supabase schema) — it is the source of truth. `startup-elo-mvp.html` is the original single-file prototype that this app is ported from.
 
 ## Stack
 

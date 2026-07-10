@@ -1,4 +1,4 @@
-// Core domain types for ConvictionELO.
+// Core domain types for Coliseo.
 
 export type QKey = "V" | "G" | "D"; // Value | Growth | Workplace
 

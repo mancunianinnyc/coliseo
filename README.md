@@ -1,8 +1,8 @@
-# ConvictionELO
+# Coliseo
 
 A daily game where people vote on head-to-head startup matchups. Each vote nudges a live Elo rating, every rating change is a shareable object, and showing up daily builds your credibility. **Wordle's daily ritual × Fantasy Premier League's league tables × a startup-ranking wiki.**
 
-*(Working title "Startup ELO" — now branded **ConvictionELO**.)*
+*(Working title "Startup ELO", then "ConvictionELO" — now branded **Coliseo**. Tagline: Head-to-Head Startup Ranking & Discovery. Some internal filenames, the GitHub repo, and the Vercel/Supabase projects still use the old `convictionelo` slug until renamed.)*
 
 ---
 

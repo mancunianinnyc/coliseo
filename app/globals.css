@@ -148,6 +148,55 @@ body {
 .vr .p { font-weight: 800; }
 .streakup { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, rgba(255, 182, 56, .15), rgba(255, 107, 139, .15)); border: 1px solid var(--line); border-radius: 14px; padding: 12px 20px; font-weight: 800; font-size: 16px; margin: 12px 0; }
 
+/* ---------- Daily run: descending trail of completed rounds ----------
+   Each finished round collapses to a breadcrumb with a ✓ node; a vertical
+   connector links them so the day reads as a downward journey into the live
+   matchup (.step), which is auto-scrolled to the top as each round begins. */
+.run { position: relative; }
+.trail { margin: 2px 0 12px; }
+.tnode { position: relative; display: flex; align-items: center; gap: 12px; padding: 0 0 13px 0; scroll-margin-top: 14px; animation: crumb-in .34s cubic-bezier(.22, 1, .36, 1); }
+.tnode::before { content: ""; position: absolute; left: 13px; top: 26px; bottom: -3px; width: 2.5px; border-radius: 2px; background: linear-gradient(var(--teal), rgba(55, 182, 255, .45)); }
+.tnode:last-child::before { bottom: -12px; background: linear-gradient(rgba(55, 182, 255, .45), rgba(55, 182, 255, 0)); }
+.tdot { flex-shrink: 0; width: 27px; height: 27px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 900; color: #fff; background: linear-gradient(135deg, var(--mint), var(--sky)); box-shadow: 0 3px 9px rgba(34, 201, 160, .32); z-index: 1; }
+.tcard { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow-sm); border-radius: 12px; padding: 9px 14px; min-width: 0; }
+.tk { font-size: 10px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+.tpick { font-size: 13px; font-weight: 800; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+.tpick .tover { color: var(--muted); font-weight: 600; }
+.step { scroll-margin-top: 14px; }
+@keyframes crumb-in { from { opacity: 0; transform: translateY(-7px); } to { opacity: 1; transform: none; } }
+
+/* ---------- Shareable daily-summary card (blueprint for the OG share image) ---------- */
+.done-wrap { text-align: center; max-width: 460px; margin: 0 auto; }
+.done-eyebrow { font-size: 12px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; color: var(--teal2); margin: 4px 0 12px; }
+.sharecard { position: relative; overflow: hidden; text-align: left; color: #fff; border-radius: 22px; box-shadow: 0 18px 44px rgba(28, 26, 46, .34); }
+.sharecard.champ { background: radial-gradient(135% 95% at 50% -12%, #35315a 0%, #201d36 55%, var(--ink) 100%); padding: 18px 20px 16px; }
+.sharecard::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 5px; background: linear-gradient(90deg, var(--teal), var(--sky)); z-index: 2; }
+.sc-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.sc-kicker { font-size: 10.5px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; color: var(--sky); }
+.sc-mark { width: 22px; height: 22px; border-radius: 7px; display: block; }
+.sc-date { font-size: 12px; font-weight: 600; color: rgba(255, 255, 255, .55); white-space: nowrap; }
+
+/* Champion hero */
+.sc-hero { text-align: center; padding: 6px 0 4px; }
+.sc-crown { font-size: 22px; line-height: 1; margin-bottom: 2px; filter: drop-shadow(0 3px 8px rgba(255, 182, 56, .45)); }
+.sc-hero-logo { position: relative; width: 78px; height: 78px; border-radius: 22px; margin: 0 auto; display: grid; place-items: center; font-size: 32px; font-weight: 800; color: #fff; overflow: hidden; box-shadow: 0 0 0 4px rgba(55, 182, 255, .22), 0 14px 34px rgba(0, 0, 0, .45); }
+.sc-hero-logo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 13px; background: #fff; }
+.sc-hero-name { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: 27px; letter-spacing: -.3px; margin-top: 12px; line-height: 1.1; }
+.sc-hero-sub { font-size: 12.5px; font-weight: 600; color: rgba(255, 255, 255, .62); margin-top: 3px; }
+
+/* Outlasted field */
+.sc-beat { margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, .12); }
+.sc-beat-label { font-size: 10px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255, 255, 255, .5); }
+.sc-beat-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
+.sc-chip { display: inline-flex; align-items: center; gap: 7px; background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .11); border-radius: 999px; padding: 4px 12px 4px 4px; font-size: 12.5px; font-weight: 700; }
+.sc-clogo { position: relative; width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff; overflow: hidden; flex-shrink: 0; }
+.sc-clogo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 3px; background: #fff; }
+
+.sc-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding-top: 13px; border-top: 1px solid rgba(255, 255, 255, .12); }
+.sc-streak { font-size: 13px; font-weight: 800; }
+.sc-brandmark { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; letter-spacing: -.2px; color: rgba(255, 255, 255, .85); }
+.done-note { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-top: 12px; min-height: 18px; }
+
 h2.sec { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: 23px; margin: 6px 0 14px; }
 .board-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0 14px; }
 .row.grad { opacity: .92; }
@@ -252,6 +301,8 @@ nav.bottom { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display
 
 .site-footer { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; font-size: 10.5px; font-weight: 500; color: #aeacbd; line-height: 1.6; margin: 40px auto 4px; padding-top: 18px; border-top: 1px solid var(--line); max-width: 540px; }
 .footer-legal { font-size: 10.5px; color: #b6b4c4; line-height: 1.65; max-width: 460px; }
+.footer-why { color: var(--teal2); font-weight: 700; text-decoration: none; white-space: nowrap; }
+.footer-why:hover { text-decoration: underline; text-underline-offset: 2px; }
 .footer-meta { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; font-size: 11px; }
 .footer-dot { color: var(--line); }
 .footer-name { color: inherit; font-weight: 700; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 2px; transition: .15s; }

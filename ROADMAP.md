@@ -1,6 +1,6 @@
-# ConvictionELO — Public Roadmap
+# Coliseo — Public Roadmap
 
-ConvictionELO is a daily game where people vote on head-to-head startup matchups,
+Coliseo is a daily game where people vote on head-to-head startup matchups,
 and every vote nudges a live Elo rating across three dimensions — **Value**,
 **Growth**, and **Workplace**. This roadmap is public on purpose: the goal is for
 the product to take on a life of its own, and that starts with everyone being

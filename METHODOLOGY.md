@@ -1,6 +1,6 @@
-# How ConvictionELO scoring works
+# How Coliseo scoring works
 
-ConvictionELO turns thousands of quick head-to-head votes into a live ranking of
+Coliseo turns thousands of quick head-to-head votes into a live ranking of
 startups. This page explains exactly how — in plain English first, with the
 precise formulas at the end for anyone who wants to check our math. The code is
 open source: the rating logic lives in [`lib/elo.ts`](./lib/elo.ts) (pure,

@@ -1,6 +1,6 @@
-# Contributing to ConvictionELO
+# Contributing to Coliseo
 
-Thanks for being here. ConvictionELO is meant to take on a life of its own, and
+Thanks for being here. Coliseo is meant to take on a life of its own, and
 that only works if contributing is easy. There are **three ways to help** — pick
 the lane that fits. (New to the project? Read the
 [About](https://github.com/mancunianinnyc/ConvictionELO/wiki/About) page first.)

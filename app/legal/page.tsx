@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Privacy & Terms — ConvictionELO",
-  description: "How ConvictionELO handles your data, and the terms of using it.",
+  title: "Privacy & Terms — Coliseo",
+  description: "How Coliseo handles your data, and the terms of using it.",
 };
 
 // Plain-language privacy notice + terms. Deliberately short and honest for a
@@ -13,14 +13,14 @@ export default function LegalPage() {
   return (
     <main className="legal">
       <Link href="/" className="legal-back">
-        ← Back to ConvictionELO
+        ← Back to Coliseo
       </Link>
 
       <h1 className="legal-title">Privacy &amp; Terms</h1>
       <p className="legal-meta">Last updated: July 2026</p>
 
       <p className="legal-lead">
-        ConvictionELO is a crowd-ranked startup discovery game. It&apos;s free, open source, and
+        Coliseo is a crowd-ranked startup discovery game. It&apos;s free, open source, and
         deliberately light on data collection. Here&apos;s exactly how it works and what we do with
         the little data it keeps.
       </p>
@@ -77,7 +77,7 @@ export default function LegalPage() {
 
       <h2 className="legal-h2">Terms of use</h2>
 
-      <h3 className="legal-h3">What ConvictionELO is (and isn&apos;t)</h3>
+      <h3 className="legal-h3">What Coliseo is (and isn&apos;t)</h3>
       <p>
         The service is provided <strong>&ldquo;as is,&rdquo; for entertainment and informational
         purposes</strong>. Company details are compiled from public sources and may be incomplete,
@@ -98,7 +98,7 @@ export default function LegalPage() {
 
       <h3 className="legal-h3">Open source</h3>
       <p>
-        ConvictionELO is released under the{" "}
+        Coliseo is released under the{" "}
         <a href="https://github.com/mancunianinnyc/ConvictionELO/blob/main/LICENSE" target="_blank" rel="noreferrer">
           AGPL-3.0 license
         </a>
@@ -133,7 +133,7 @@ export default function LegalPage() {
       </p>
 
       <Link href="/" className="legal-back legal-back-bottom">
-        ← Back to ConvictionELO
+        ← Back to Coliseo
       </Link>
     </main>
   );

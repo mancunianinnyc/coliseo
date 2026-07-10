@@ -1,4 +1,4 @@
--- Launch hardening for ConvictionELO.
+-- Launch hardening for Coliseo.
 --
 -- Applied to production on 2026-07-09. Keep this checked in so the live
 -- Supabase state is reproducible from the repo.
