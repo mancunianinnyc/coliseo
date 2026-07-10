@@ -30,7 +30,7 @@ const STAGES = ["Early", "Growth", "Late"] as const;
 
 // First-run onboarding is shown once per browser. Bump the version suffix to
 // re-show the explainer after a material change to its copy.
-const ONBOARD_KEY = "ce_onboarded_v3";
+const ONBOARD_KEY = "ce_onboarded_v4";
 
 function Logo({ c, cls }: { c: Company; cls: string }) {
   return (
@@ -1608,9 +1608,9 @@ export default function App() {
               <li>
                 <span className="onboard-ic">📊</span>
                 <span>
-                  <b>One question a day, rotating:</b> 🚀 which you&apos;d 10x your money on, 🔥 which
-                  is actually winning, or 🏃 which you&apos;d quit your job to join. Every vote moves a
-                  live rating; finish your three to unlock the leaderboard.
+                  <b>One question a day, rotating:</b> 💰 which you&apos;d put your entire net worth
+                  into, 🔥 which is winning right now, or 🧲 which pulls in the killer talent. Every
+                  vote moves a live rating; finish your three to unlock the leaderboard.
                 </span>
               </li>
             </ol>

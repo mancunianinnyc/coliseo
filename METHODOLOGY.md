@@ -17,9 +17,9 @@ you can see how it's made.
 Not popularity, and not our opinion — **the crowd's conviction**. Every company
 carries a live rating on three independent questions:
 
-- **🚀 Conviction** — which would you 10x your money on?
-- **🔥 Momentum** — which is actually winning right now?
-- **🏃 Talent** — which would you quit your job to join?
+- **💰 Conviction** — your entire net worth, one company, 10 years — which?
+- **🔥 Momentum** — which one is winning right now?
+- **🧲 Talent** — which one does killer talent want to work for?
 
 A company can lead on one and trail on another. The three ratings are kept
 completely separate.

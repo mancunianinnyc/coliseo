@@ -11,32 +11,33 @@ export interface Question {
 
 // The three lenses are deliberately provocative and size-de-biased: the answer
 // should never just be "the bigger company." Each forces a real, arguable call
-// (money on the line / hype vs. substance / would you actually quit) so matchups
-// generate debate — and so unknown companies can genuinely win.
+// (your whole net worth on the line / who's winning right now / where the best
+// people actually want to be) so matchups generate debate — and so unknown
+// companies can genuinely win.
 export const QUESTIONS: Record<QKey, Question> = {
   V: {
     key: "V",
     label: "Conviction",
-    chip: "🚀 Would 10x",
-    emoji: "🚀",
-    q: "Which would you <span>10x your money</span> on?",
-    verb: "who I'd 10x on",
+    chip: "💰 All-in on",
+    emoji: "💰",
+    q: "Your <span>entire net worth</span>, one company, 10 years — which?",
+    verb: "who I'd go all-in on",
   },
   G: {
     key: "G",
     label: "Momentum",
-    chip: "🔥 Actually winning",
+    chip: "🔥 Winning now",
     emoji: "🔥",
-    q: "Which is <span>actually winning</span> right now?",
-    verb: "who's actually winning",
+    q: "Which one is <span>winning</span> right now?",
+    verb: "who's winning",
   },
   D: {
     key: "D",
     label: "Talent",
-    chip: "🏃 Quit to join",
-    emoji: "🏃",
-    q: "Which would you <span>quit your job</span> to join?",
-    verb: "who I'd quit for",
+    chip: "🧲 Killer talent",
+    emoji: "🧲",
+    q: "Which one does <span>killer talent</span> want to work for?",
+    verb: "who killer talent wants",
   },
 };
 
