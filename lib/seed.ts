@@ -72,6 +72,7 @@ export function buildCompanies(): Company[] {
       blurb: s.b,
       gradient: gradientFor(s.n),
       ratings,
+      prominence: s.p,
       logoUrl: `/logos/${logoSlug(s.d)}.png`,
       description: s.desc,
       foundedYear: s.founded,

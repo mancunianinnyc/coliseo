@@ -43,7 +43,7 @@ async function main() {
 
     // ---- bulk insert companies (17 params/row + constant status) ----
     const companyParams = companies.flatMap((c) => [
-      c.name, c.website, c.category, c.region, c.stage, c.blurb, c.gradient,
+      c.name, c.website, c.category, c.region, c.stage, c.blurb, c.gradient, c.prominence,
       c.logoUrl ?? null, c.description ?? null, c.foundedYear ?? null,
       c.headquarters ?? null, c.employees ?? null, c.totalFunding ?? null,
       c.valuation ?? null, c.founders ?? null, c.tags ?? null,
@@ -52,11 +52,11 @@ async function main() {
     ]);
     const { rows: inserted } = await client.query(
       `insert into companies
-         (name, website, category, region, stage, blurb, gradient,
+         (name, website, category, region, stage, blurb, gradient, prominence,
           logo_url, description, founded_year, headquarters, employees,
           total_funding, valuation, founders, tags, links,
           lifecycle, exited_at, exit_note, status)
-       values ${placeholders(companies.length, 20, ", 'live'")}
+       values ${placeholders(companies.length, 21, ", 'live'")}
        returning id`,
       companyParams,
     );

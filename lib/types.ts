@@ -32,6 +32,9 @@ export interface Company {
   blurb: string;
   gradient: string; // CSS gradient fallback for the logo tile
   ratings: Record<QKey, Rating>;
+  // Fame tier 1–5 (5 = household name). Drives peer matchmaking + the new-user
+  // warm-up ramp so voters see companies at their own recognition level.
+  prominence: number;
 
   // ---- Crunchbase-style profile fields (all optional; may be unset for
   //      freshly submitted companies until enriched/verified) ----

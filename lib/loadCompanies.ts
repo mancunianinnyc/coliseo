@@ -11,6 +11,7 @@ interface CompanyRow {
   stage: "Growth" | "Late";
   blurb: string | null;
   gradient: string | null;
+  prominence: number | null;
   logo_url: string | null;
   description: string | null;
   founded_year: number | null;
@@ -27,7 +28,7 @@ interface CompanyRow {
 }
 
 const COMPANY_COLUMNS =
-  "id, name, website, category, region, stage, blurb, gradient, logo_url, description, founded_year, headquarters, employees, total_funding, valuation, founders, tags, links, lifecycle, exited_at, exit_note";
+  "id, name, website, category, region, stage, blurb, gradient, prominence, logo_url, description, founded_year, headquarters, employees, total_funding, valuation, founders, tags, links, lifecycle, exited_at, exit_note";
 
 interface RatingRow {
   company_id: number;
@@ -81,6 +82,7 @@ export async function loadCompanies(): Promise<Company[]> {
       stage: c.stage,
       blurb: c.blurb ?? "",
       gradient: c.gradient ?? FALLBACK_GRADIENT,
+      prominence: c.prominence ?? 2,
       ratings: {
         V: ratings.V ?? emptyRating(),
         G: ratings.G ?? emptyRating(),

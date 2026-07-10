@@ -43,6 +43,22 @@ export async function votesTodayCount(userId: string): Promise<number> {
   return Math.min(count ?? 0, 3);
 }
 
+// Total votes this user has ever cast — drives the new-user warm-up ramp (early
+// matchups skew to recognizable companies, then broaden). RLS ("read own votes")
+// scopes this to the caller.
+export async function votesLifetimeCount(userId: string): Promise<number> {
+  if (!supabase) return 0;
+  const { count, error } = await supabase
+    .from("votes")
+    .select("id", { count: "exact", head: true })
+    .eq("voter_id", userId);
+  if (error) {
+    console.error("votesLifetimeCount failed:", error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
+
 // Calls the server-authoritative `cast_vote` SECURITY DEFINER function. The
 // database — not the client — validates the pick, enforces one vote per
 // dimension per day, applies the Elo change to `ratings`, and records the vote.

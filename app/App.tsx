@@ -7,7 +7,7 @@ import { loadCompanies } from "@/lib/loadCompanies";
 import { CATEGORIES, REGIONS } from "@/lib/companies.data";
 import { useSession } from "@/lib/auth";
 import { loadProfile, saveStreak } from "@/lib/profile";
-import { castVote, votesTodayCount } from "@/lib/castVote";
+import { castVote, votesTodayCount, votesLifetimeCount } from "@/lib/castVote";
 import { submitCompany } from "@/lib/submitCompany";
 import { flagUnknown } from "@/lib/unknowns";
 import {
@@ -130,6 +130,8 @@ export default function App() {
   // Company ids already shown in today's gauntlet, so a fresh challenger isn't a
   // repeat. Reset each new day.
   const [seenToday, setSeenToday] = useState<number[]>([]);
+  // Lifetime votes cast — drives the new-user warm-up ramp (see warmupFloor).
+  const [lifetimeVotes, setLifetimeVotes] = useState(0);
   // A *provisional* selection for the current pick — nothing is committed
   // (no Elo persisted, no vote recorded) until commitPick(). Re-tapping the
   // other card just recomputes this, so the user can freely change their mind.
@@ -182,7 +184,7 @@ export default function App() {
     loadCompanies().then((list) => {
       if (cancelled) return;
       setCompanies(list);
-      const p = firstPair(list);
+      const p = openingPair(list);
       setPair(p);
       setSeenToday(p);
     });
@@ -219,6 +221,10 @@ export default function App() {
       setPickIndex(n);
       if (n >= 3) setDoneToday(true); // out of picks — unlock tables, lock voting
     });
+    // Warm-up ramp input: how many votes this user has ever cast.
+    votesLifetimeCount(userId).then((n) => {
+      if (!cancelled) setLifetimeVotes(n);
+    });
     return () => {
       cancelled = true;
     };
@@ -246,6 +252,11 @@ export default function App() {
   // One question per day, rotating by UTC calendar day so everyone gets the same
   // question on the same day. It stays fixed across all 3 of the day's rounds.
   const voteQ = QORDER[Math.floor(Date.now() / 86_400_000) % QORDER.length];
+  // New-user warm-up: only surface companies at/above this prominence tier until
+  // the user has played a bit, so their first matchups are recognizable and the
+  // game clicks before we introduce deep cuts. Defaults high (new-user-safe)
+  // until the lifetime count loads.
+  const warmupFloor = lifetimeVotes < 9 ? 4 : lifetimeVotes < 30 ? 3 : 1;
   // Company ids come from Supabase's identity column, not a 0-based array
   // index — always look companies up by id, never by position.
   const byId = useMemo(() => new Map(companies.map((c) => [c.id, c])), [companies]);
@@ -268,36 +279,45 @@ export default function App() {
   const A = byId.get(a);
   const B = byId.get(b);
 
-  function nearestPair(list: Company[], qk: QKey): [number, number] {
-    const arena = list.filter(isActive);
-    const ai = Math.floor(Math.random() * arena.length);
-    const anchor = arena[ai];
-    const pool = arena
-      .filter((c) => c.id !== anchor.id)
-      .sort(
-        (x, y) =>
-          Math.abs(x.ratings[qk].elo - anchor.ratings[qk].elo) -
-          Math.abs(y.ratings[qk].elo - anchor.ratings[qk].elo),
-      )
-      .slice(0, 6);
-    const bi = pool[Math.floor(Math.random() * pool.length)];
-    return [anchor.id, bi.id];
-  }
-
-  // Pick a fresh challenger for a reigning company: the nearest-rated active
-  // company on the day's dimension that hasn't been shown yet today. Falls back
-  // gracefully if the (small) exclusion set would otherwise leave nothing.
+  // Pick a fresh challenger for a reigning company. Prefers PEERS — within ±1
+  // prominence tier and, secondarily, the same category/region — above the
+  // warm-up floor, so matchups are fair and recognizable rather than
+  // famous-vs-obscure (which just trains brand-recognition voting). Widens the
+  // net step by step if a band is too thin, and always returns something.
   function pickChallenger(list: Company[], championId: number, qk: QKey, exclude: number[]): number {
     const champ = list.find((c) => c.id === championId);
-    let pool = list.filter(
-      (c) => isActive(c) && c.id !== championId && !exclude.includes(c.id),
-    );
+    const champP = champ?.prominence ?? 2;
+    const excl = new Set([championId, ...exclude]);
+    const eligible = (floor: number, peerBand: boolean) =>
+      list.filter(
+        (c) =>
+          isActive(c) &&
+          !excl.has(c.id) &&
+          (c.prominence ?? 2) >= floor &&
+          (!peerBand || Math.abs((c.prominence ?? 2) - champP) <= 1),
+      );
+    let pool = eligible(warmupFloor, true); // peers, above the warm-up floor
+    if (pool.length < 3) pool = eligible(warmupFloor, false); // drop the peer band
+    if (pool.length < 3) pool = eligible(1, false); // drop the warm-up floor
     if (pool.length === 0) pool = list.filter((c) => isActive(c) && c.id !== championId);
+    // Among the pool, prefer a same-category/region peer for a real matchup.
+    const themed = pool.filter((c) => c.category === champ?.category || c.region === champ?.region);
+    const finalPool = themed.length >= 3 ? themed : pool;
     const champElo = champ ? champ.ratings[qk].elo : 1500;
-    const near = pool
+    const near = finalPool
       .sort((x, y) => Math.abs(x.ratings[qk].elo - champElo) - Math.abs(y.ratings[qk].elo - champElo))
       .slice(0, 8);
     return near[Math.floor(Math.random() * near.length)].id;
+  }
+
+  // The day's opening matchup: an anchor at/above the warm-up floor, then a
+  // prominence-peer challenger — so even round 1 is a fair, recognizable-enough
+  // matchup instead of famous-vs-obscure.
+  function openingPair(list: Company[]): [number, number] {
+    const eligible = list.filter((c) => isActive(c) && (c.prominence ?? 2) >= warmupFloor);
+    const anchors = eligible.length ? eligible : list.filter(isActive);
+    const anchor = anchors[Math.floor(Math.random() * anchors.length)];
+    return [anchor.id, pickChallenger(list, anchor.id, voteQ, [])];
   }
 
   // Reshuffle without casting a vote: keep one company, bring a fresh challenger.
@@ -312,7 +332,7 @@ export default function App() {
 
   // Start a brand-new day's gauntlet: two fresh, comparable companies.
   function newMatch(next = companies) {
-    const p = nearestPair(next, voteQ);
+    const p = openingPair(next);
     setPair(p);
     setSeenToday(p);
     setDecided(null);
@@ -536,6 +556,7 @@ export default function App() {
           blurb: form.blurb.trim() || "Freshly submitted — awaiting details.",
           gradient: grad,
           ratings: { V: r(), G: r(), D: r() },
+          prominence: 2,
           logoUrl: form.logoUrl || null,
         },
       ]);
@@ -1677,17 +1698,3 @@ export default function App() {
   );
 }
 
-function firstPair(list: Company[]): [number, number] {
-  const arena = list.filter(isActive);
-  const ai = Math.floor(Math.random() * arena.length);
-  const anchor = arena[ai];
-  const pool = arena
-    .filter((c) => c.id !== anchor.id)
-    .sort(
-      (x, y) =>
-        Math.abs(x.ratings.V.elo - anchor.ratings.V.elo) -
-        Math.abs(y.ratings.V.elo - anchor.ratings.V.elo),
-    )
-    .slice(0, 6);
-  return [anchor.id, pool[Math.floor(Math.random() * pool.length)].id];
-}
