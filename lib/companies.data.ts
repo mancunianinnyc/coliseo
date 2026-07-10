@@ -84,6 +84,10 @@ export const EXITS: Record<string, { s: Lifecycle; note: string; year?: number }
   "Hinge Health": { s: "public", note: "IPO 2025 · NYSE: HNGE", year: 2025 },
   "Rocket Lab": { s: "public", note: "Public 2021 · NASDAQ: RKLB", year: 2021 },
   Loom: { s: "acquired", note: "Acquired by Atlassian, 2023", year: 2023 },
+  SpaceX: { s: "public", note: "IPO 2026 · NASDAQ: SPCX", year: 2026 },
+  xAI: { s: "acquired", note: "Acquired by SpaceX, 2026", year: 2026 },
+  Cursor: { s: "acquired", note: "Acquired by SpaceX, 2026", year: 2026 },
+  Wiz: { s: "acquired", note: "Acquired by Google, 2026", year: 2026 },
 };
 
 export const REGIONS = [

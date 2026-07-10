@@ -3,7 +3,7 @@
 > **Rebranded July 2026:** this product is now **Coliseo** (tagline: *Head-to-Head Startup Ranking & Discovery*). It was previously "ConvictionELO"; older mentions of that name and the "conviction" double-meaning below are historical. The Colosseum/arena metaphor now carries the brand.
 
 
-*Last updated: 7 July 2026. This doc is the single source of truth for the ConvictionELO MVP. It's written to be pasted into or read by another builder (Lovable, Replit, v0, a developer) to continue iterating. A working front-end prototype exists: `startup-elo-mvp.html` (open in any browser — no backend, state resets on refresh).*
+*Last updated: 7 July 2026. This doc is the single source of truth for the ConvictionELO MVP. It's written to be pasted into or read by another builder (Lovable, Replit, v0, a developer) to continue iterating. The production app lives in `app/` (Next.js + Supabase).*
 
 ---
 
@@ -191,6 +191,6 @@ Alternatives: Replit Agent (strongest single-vendor prompt→deploy), v0 (design
 
 ## 12. Files in this project
 
-- `startup-elo-mvp.html` — the working interactive front-end prototype (all mechanics above, simulated, no backend). Has a "▶ new day" control to fast-forward the streak/decay for testing.
+- `app/` — the production Next.js + Supabase app (the whole interactive client is `app/App.tsx`).
 - `ConvictionELO-spec.md` — this document.
 - `Startup ELO.md` — the original strategy blueprint (rationale, citations, deeper reasoning behind every decision here).
