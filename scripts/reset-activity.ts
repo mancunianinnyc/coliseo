@@ -44,22 +44,27 @@ async function main() {
     );
 
     // 3. Restore the seed's prominence-based starting Elo for seed companies,
-    //    matched by name.
+    //    matched by name — as ONE bulk update (a per-row loop over the pooler is
+    //    slow enough to time out and leave a lock-holding transaction behind).
     const seed = buildCompanies();
-    let seededRows = 0;
+    const names: string[] = [];
+    const dims: string[] = [];
+    const elos: number[] = [];
     for (const c of seed) {
       for (const qk of DIMENSIONS) {
-        const elo = c.ratings[qk].elo;
-        const { rowCount } = await client.query(
-          `update ratings r
-             set elo = $1, season_start = $1
-             from companies co
-            where co.id = r.company_id and co.name = $2 and r.dimension = $3`,
-          [elo, c.name, qk],
-        );
-        seededRows += rowCount ?? 0;
+        names.push(c.name);
+        dims.push(qk);
+        elos.push(c.ratings[qk].elo);
       }
     }
+    const { rowCount: seededRows } = await client.query(
+      `update ratings r
+          set elo = t.elo, season_start = t.elo
+         from (select unnest($1::text[]) as name, unnest($2::text[]) as dim, unnest($3::int[]) as elo) t
+         join companies co on co.name = t.name
+        where r.company_id = co.id and r.dimension = t.dim`,
+      [names, dims, elos],
+    );
 
     const { rows: counts } = await client.query(
       `select
