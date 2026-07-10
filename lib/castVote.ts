@@ -30,12 +30,15 @@ export type CastVoteOutcome =
 // caller; the userId filter is belt-and-suspenders.
 export async function votesTodayCount(userId: string): Promise<number> {
   if (!supabase) return 0;
-  const startOfUtcDay = new Date().toISOString().slice(0, 10) + "T00:00:00Z";
+  // Count since the user's LOCAL midnight, matching cast_vote's local-day reset
+  // (setHours(0,0,0,0) → local midnight; toISOString() → its UTC instant).
+  const localMidnight = new Date();
+  localMidnight.setHours(0, 0, 0, 0);
   const { count, error } = await supabase
     .from("votes")
     .select("id", { count: "exact", head: true })
     .eq("voter_id", userId)
-    .gte("created_at", startOfUtcDay);
+    .gte("created_at", localMidnight.toISOString());
   if (error) {
     console.error("votesTodayCount failed:", error.message);
     return 0;
@@ -71,6 +74,9 @@ export async function castVote(input: CastVoteInput): Promise<CastVoteOutcome> {
     p_company_b: input.companyB,
     p_dimension: input.dimension,
     p_winner: input.winner,
+    // Browser's minutes-behind-UTC, so the daily limit resets on the user's
+    // local midnight (300 for UTC-5) rather than UTC midnight.
+    p_tz_offset: new Date().getTimezoneOffset(),
   });
 
   if (error) {

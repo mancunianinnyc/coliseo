@@ -16,7 +16,8 @@ create or replace function cast_vote(
   p_company_a bigint,
   p_company_b bigint,
   p_dimension text,
-  p_winner    bigint
+  p_winner    bigint,
+  p_tz_offset int default 0
 ) returns jsonb
 language plpgsql
 security definer
@@ -54,13 +55,18 @@ begin
 
   v_loser := case when p_winner = p_company_a then p_company_b else p_company_a end;
 
-  -- ---- daily limit: 3 picks per calendar day (any dimension) ----
+  -- ---- daily limit: 3 picks per LOCAL calendar day (any dimension) ----
   -- The game asks one question per day and runs a 3-round "king of the hill"
-  -- gauntlet on it, so all 3 of a day's votes share the same dimension.
+  -- gauntlet on it, so all 3 of a day's votes share the same dimension. Reset on
+  -- the voter's LOCAL midnight, not UTC — otherwise UTC midnight (e.g. 7pm in
+  -- Colombia) rolls someone's evening play into "today" and locks them out the
+  -- next morning. p_tz_offset is the browser's getTimezoneOffset (minutes behind
+  -- UTC; 300 for UTC-5), so local time = UTC - offset.
   if (
     select count(*) from votes
     where voter_id = v_voter
-      and vote_day = (now() at time zone 'UTC')::date
+      and ((created_at at time zone 'UTC') - make_interval(mins => p_tz_offset))::date
+        = ((now()      at time zone 'UTC') - make_interval(mins => p_tz_offset))::date
   ) >= 3 then
     raise exception 'already voted 3 times today'
       using errcode = 'P0001';
@@ -126,6 +132,9 @@ $$;
 -- Only signed-in (incl. anonymous) users may call it; nobody may write ratings
 -- directly. Votes now flow exclusively through this function, so remove the
 -- old client-side direct-insert policy.
-revoke all on function cast_vote(bigint, bigint, text, bigint) from public, anon;
-grant execute on function cast_vote(bigint, bigint, text, bigint) to authenticated;
+-- Drop the old timezone-naive 4-arg signature so only the local-day-aware
+-- version remains (avoids overload ambiguity).
+drop function if exists cast_vote(bigint, bigint, text, bigint);
+revoke all on function cast_vote(bigint, bigint, text, bigint, int) from public, anon;
+grant execute on function cast_vote(bigint, bigint, text, bigint, int) to authenticated;
 drop policy if exists "insert own votes" on votes;
