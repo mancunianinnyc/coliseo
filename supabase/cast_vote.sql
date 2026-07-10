@@ -54,14 +54,15 @@ begin
 
   v_loser := case when p_winner = p_company_a then p_company_b else p_company_a end;
 
-  -- ---- one pick per dimension per day ----
-  if exists (
-    select 1 from votes
+  -- ---- daily limit: 3 picks per calendar day (any dimension) ----
+  -- The game asks one question per day and runs a 3-round "king of the hill"
+  -- gauntlet on it, so all 3 of a day's votes share the same dimension.
+  if (
+    select count(*) from votes
     where voter_id = v_voter
-      and dimension = p_dimension
       and vote_day = (now() at time zone 'UTC')::date
-  ) then
-    raise exception 'already voted on this dimension today'
+  ) >= 3 then
+    raise exception 'already voted 3 times today'
       using errcode = 'P0001';
   end if;
 

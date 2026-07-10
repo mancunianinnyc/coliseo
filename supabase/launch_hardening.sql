@@ -112,8 +112,11 @@ alter table public.votes
   alter column vote_day set default ((now() at time zone 'UTC')::date),
   alter column vote_day set not null;
 
-create unique index if not exists votes_one_dimension_per_day_uidx
-  on public.votes (voter_id, dimension, vote_day);
+-- The daily limit is "3 picks per day (any dimension)" — the game asks one
+-- question a day and runs a 3-round king-of-the-hill gauntlet on it, so a day's
+-- three votes share a dimension. Drop the old one-per-dimension-per-day unique
+-- index (it would reject rounds 2 and 3); cast_vote enforces the 3/day cap.
+drop index if exists votes_one_dimension_per_day_uidx;
 
 drop policy if exists "read own votes" on public.votes;
 create policy "read own votes" on public.votes

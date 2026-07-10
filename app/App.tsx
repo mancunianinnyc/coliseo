@@ -67,6 +67,9 @@ export default function App() {
   const [streak, setStreak] = useState(0);
   const [pickIndex, setPickIndex] = useState(0);
   const [pair, setPair] = useState<[number, number]>([0, 1]);
+  // Company ids already shown in today's gauntlet, so a fresh challenger isn't a
+  // repeat. Reset each new day.
+  const [seenToday, setSeenToday] = useState<number[]>([]);
   // A *provisional* selection for the current pick — nothing is committed
   // (no Elo persisted, no vote recorded) until commitPick(). Re-tapping the
   // other card just recomputes this, so the user can freely change their mind.
@@ -119,7 +122,9 @@ export default function App() {
     loadCompanies().then((list) => {
       if (cancelled) return;
       setCompanies(list);
-      setPair(firstPair(list));
+      const p = firstPair(list);
+      setPair(p);
+      setSeenToday(p);
     });
     return () => {
       cancelled = true;
@@ -167,7 +172,9 @@ export default function App() {
   }, [doneToday, view]);
 
   const tier = tierFor(streak);
-  const voteQ = QORDER[Math.min(pickIndex, 2)];
+  // One question per day, rotating by UTC calendar day so everyone gets the same
+  // question on the same day. It stays fixed across all 3 of the day's rounds.
+  const voteQ = QORDER[Math.floor(Date.now() / 86_400_000) % QORDER.length];
   // Company ids come from Supabase's identity column, not a 0-based array
   // index — always look companies up by id, never by position.
   const byId = useMemo(() => new Map(companies.map((c) => [c.id, c])), [companies]);
@@ -206,8 +213,37 @@ export default function App() {
     return [anchor.id, bi.id];
   }
 
-  function newMatch(next = companies, pi = pickIndex) {
-    setPair(nearestPair(next, QORDER[Math.min(pi, 2)]));
+  // Pick a fresh challenger for a reigning company: the nearest-rated active
+  // company on the day's dimension that hasn't been shown yet today. Falls back
+  // gracefully if the (small) exclusion set would otherwise leave nothing.
+  function pickChallenger(list: Company[], championId: number, qk: QKey, exclude: number[]): number {
+    const champ = list.find((c) => c.id === championId);
+    let pool = list.filter(
+      (c) => isActive(c) && c.id !== championId && !exclude.includes(c.id),
+    );
+    if (pool.length === 0) pool = list.filter((c) => isActive(c) && c.id !== championId);
+    const champElo = champ ? champ.ratings[qk].elo : 1500;
+    const near = pool
+      .sort((x, y) => Math.abs(x.ratings[qk].elo - champElo) - Math.abs(y.ratings[qk].elo - champElo))
+      .slice(0, 8);
+    return near[Math.floor(Math.random() * near.length)].id;
+  }
+
+  // Reshuffle without casting a vote: keep one company, bring a fresh challenger.
+  // Used by "too close to call" (keep the reigning/left card) and "not familiar"
+  // (keep the other card). Never mixes committed matchups.
+  function reshuffle(keepId: number, next = companies) {
+    const challengerId = pickChallenger(next, keepId, voteQ, [a, b, ...seenToday]);
+    setSeenToday((s) => [...s, challengerId]);
+    setPair([keepId, challengerId]);
+    setDecided(null);
+  }
+
+  // Start a brand-new day's gauntlet: two fresh, comparable companies.
+  function newMatch(next = companies) {
+    const p = nearestPair(next, voteQ);
+    setPair(p);
+    setSeenToday(p);
     setDecided(null);
   }
 
@@ -298,17 +334,21 @@ export default function App() {
       setDoneToday(true); // today's picks are in — unlock the tables
       setView("done");
     } else {
-      // Same two companies all day — advance only the question, keep the pair.
+      // King of the hill: the winner stays on the left and faces a fresh
+      // challenger on the right. Same question all day (voteQ is date-based).
+      const challengerId = pickChallenger(next, winnerId, qk, [a, b, ...seenToday]);
+      setSeenToday((s) => [...s, challengerId]);
+      setPair([winnerId, challengerId]);
       setDecided(null);
     }
   }
 
-  // "I don't know this company." Records an obscurity signal for that specific
-  // company (not a vote — never touches Elo) and reshuffles the matchup, since
-  // you can't judge a pair you don't recognise.
+  // "I don't know this company." Records an obscurity signal (not a vote — never
+  // touches Elo) and swaps that card out for a fresh challenger, keeping the
+  // other company in place so a running champion isn't lost.
   function markUnknown(company: Company) {
     if (userId) void flagUnknown(userId, company.id, voteQ);
-    newMatch();
+    reshuffle(company.id === a ? b : a);
   }
 
   function simDay() {
@@ -322,9 +362,8 @@ export default function App() {
     }
     setPickIndex(0);
     setTodaysPicks([]);
-    setDecided(null);
     setDoneToday(false); // new day — re-lock the tables until 3 picks are done
-    setPair(nearestPair(companies, "V"));
+    newMatch(); // fresh gauntlet: two comparable companies on the day's question
     setView("vote");
   }
 
@@ -676,7 +715,7 @@ export default function App() {
                 {delta}
               </div>
             </>
-          ) : pickIndex === 0 ? (
+          ) : (
             <button
               type="button"
               className="dunno-tag"
@@ -689,7 +728,7 @@ export default function App() {
             >
               🤷 <span>not familiar</span>
             </button>
-          ) : null}
+          )}
         </div>
       </div>
     );
@@ -837,9 +876,9 @@ export default function App() {
             </div>
             <Fighter c={B} side="B" />
           </div>
-          {!decided && pickIndex === 0 && (
-            <button className="skip" onClick={() => newMatch()}>
-              🤷 Don&apos;t know these — show a different pair
+          {!decided && (
+            <button className="skip" onClick={() => reshuffle(a)}>
+              🤔 Too close to call — swap in a new challenger
             </button>
           )}
           {decided && (
@@ -852,10 +891,10 @@ export default function App() {
                   const l = decided.winSide === "A" ? B : A;
                   const pct = Math.round(expected(w, l, voteQ) * 100);
                   return pct >= 70
-                    ? `Chalk pick ✅ — ${w.name} was favoured`
+                    ? `Backing the favourite — ${w.name}`
                     : pct <= 35
                       ? `🚨 Upset! You backed the underdog ${w.name}`
-                      : `Coin-flip call — ${w.name} edges it`;
+                      : `Line-ball call — you're giving it to ${w.name}`;
                 })()}
                 </div>
                 {(() => {
