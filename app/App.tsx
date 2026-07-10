@@ -55,6 +55,60 @@ interface Pick {
   lose: string;
 }
 
+// Crisp line icons for the bottom nav (stroke = currentColor, so they inherit
+// active/inactive colour and the active gradient). Line-drawn, not emoji.
+function NavIcon({ name }: { name: "vote" | "tables" | "locked" | "submit" }) {
+  const p = {
+    width: 23,
+    height: 23,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.9,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+  if (name === "vote")
+    return (
+      <svg {...p}>
+        <polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5" />
+        <line x1="13" y1="19" x2="19" y2="13" />
+        <line x1="16" y1="16" x2="20" y2="20" />
+        <line x1="19" y1="21" x2="21" y2="19" />
+        <polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5" />
+        <line x1="5" y1="14" x2="9" y2="18" />
+        <line x1="7" y1="17" x2="4" y2="20" />
+        <line x1="3" y1="19" x2="5" y2="21" />
+      </svg>
+    );
+  if (name === "tables")
+    return (
+      <svg {...p}>
+        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+        <path d="M4 22h16" />
+        <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+        <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+      </svg>
+    );
+  if (name === "locked")
+    return (
+      <svg {...p}>
+        <rect x="3" y="11" width="18" height="11" rx="2.5" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </svg>
+    );
+  return (
+    <svg {...p}>
+      <circle cx="12" cy="12" r="9.5" />
+      <path d="M12 8v8" />
+      <path d="M8 12h8" />
+    </svg>
+  );
+}
+
 // Only "active" companies are in the arena (eligible to be voted on & ranked).
 // Graduated companies (public / acquired / dead) are archived — still viewable,
 // but out of voting and the live tables.
@@ -1570,15 +1624,39 @@ export default function App() {
         </a>
       </footer>
 
+      <svg width="0" height="0" aria-hidden="true" style={{ position: "absolute" }}>
+        <linearGradient id="navGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#0eb6a6" />
+          <stop offset="1" stopColor="#37b6ff" />
+        </linearGradient>
+      </svg>
       <nav className="bottom">
-        <button className={view === "vote" || view === "done" ? "active" : ""} onClick={() => setView("vote")}>
-          <span className="ic">⚔️</span>Vote
+        <button
+          className={view === "vote" || view === "done" ? "active" : ""}
+          onClick={() => setView("vote")}
+        >
+          <span className="ic">
+            <NavIcon name="vote" />
+          </span>
+          Vote
         </button>
-        <button className={view === "board" || view === "profile" ? "active" : ""} onClick={() => setView("board")}>
-          <span className="ic">{doneToday ? "🏆" : "🔒"}</span>Tables
+        <button
+          className={view === "board" || view === "profile" ? "active" : ""}
+          onClick={() => setView("board")}
+        >
+          <span className="ic">
+            <NavIcon name={doneToday ? "tables" : "locked"} />
+          </span>
+          Tables
         </button>
-        <button className={view === "submit" ? "active" : ""} onClick={() => setView("submit")}>
-          <span className="ic">➕</span>Submit
+        <button
+          className={view === "submit" ? "active" : ""}
+          onClick={() => setView("submit")}
+        >
+          <span className="ic">
+            <NavIcon name="submit" />
+          </span>
+          Submit
         </button>
       </nav>
       </div>

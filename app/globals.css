@@ -231,10 +231,20 @@ h2.sec small { font-size: 12px; color: var(--muted); font-weight: 600; font-fami
 .linkbtn:hover { border-color: var(--teal); }
 .suggest-edit { margin: 16px 0 0; }
 
-nav.bottom { position: fixed; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, .9); backdrop-filter: blur(14px); border-top: 1px solid var(--line); display: flex; justify-content: space-around; padding: 9px 6px 12px; z-index: 40; }
-nav.bottom button { background: none; border: none; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; font-weight: 800; cursor: pointer; padding: 5px 14px; border-radius: 12px; letter-spacing: .3px; }
-nav.bottom button .ic { font-size: 20px; }
-nav.bottom button.active { color: var(--teal2); }
+/* A floating glass pill, centred over the content — elegant on mobile & desktop. */
+nav.bottom { position: fixed; left: 50%; transform: translateX(-50%); bottom: 16px; width: calc(100% - 28px); max-width: 380px;
+  display: flex; justify-content: space-between; gap: 4px; z-index: 40;
+  background: rgba(255, 255, 255, .72); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, .65); border-radius: 22px; padding: 8px;
+  box-shadow: 0 12px 34px rgba(46, 40, 90, .16), 0 2px 8px rgba(46, 40, 90, .05); }
+nav.bottom button { flex: 1; background: none; border: none; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-size: 10.5px; font-weight: 800; cursor: pointer; padding: 8px 4px; border-radius: 15px; letter-spacing: .2px; transition: color .18s ease, background .18s ease; }
+nav.bottom button .ic { display: grid; place-items: center; height: 23px; transition: transform .18s ease; }
+nav.bottom button:hover { color: var(--ink); }
+nav.bottom button:hover .ic { transform: translateY(-1px); }
+nav.bottom button.active { color: var(--teal2); background: rgba(14, 182, 166, .10); }
+nav.bottom button.active svg { stroke: url(#navGrad); }
+nav.bottom button.active .ic { transform: translateY(-1px); }
 
 .note { font-size: 11px; color: var(--muted); text-align: center; margin-top: 26px; line-height: 1.5; }
 
@@ -319,7 +329,6 @@ nav.bottom button.active { color: var(--teal2); }
   .segwrap button { font-size: 11.5px; padding: 8px 4px; }
 
   .form { padding: 18px; }
-  nav.bottom button { padding: 5px 10px; }
 }
 
 /* Fine-tune the very narrowest phones (≤360px). */
