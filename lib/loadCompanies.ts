@@ -1,4 +1,4 @@
-import type { Company, CompanyLinks, QKey, Rating } from "./types";
+import type { Company, CompanyLinks, QKey, Rating, Stage } from "./types";
 import { buildCompanies } from "./seed";
 import { supabase } from "./supabase";
 
@@ -8,7 +8,7 @@ interface CompanyRow {
   website: string;
   category: string;
   region: string;
-  stage: "Growth" | "Late";
+  stage: Stage;
   blurb: string | null;
   gradient: string | null;
   prominence: number | null;
@@ -42,20 +42,37 @@ interface RatingRow {
 const FALLBACK_GRADIENT = "linear-gradient(135deg,#0eb6a6,#37b6ff)";
 const emptyRating = (): Rating => ({ elo: 1500, games: 0, weekMovement: 0, seasonStart: 1500 });
 
+// PostgREST caps each request at 1000 rows, so page through with .range() until a
+// short page comes back. The roster is now in the thousands (YC import), and every
+// company + all three of its ratings must load for matchmaking and the tables.
+const PAGE = 1000;
+async function fetchAll<T>(table: string, columns: string): Promise<T[]> {
+  const out: T[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase!.from(table).select(columns).range(from, from + PAGE - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as T[];
+    out.push(...rows);
+    if (rows.length < PAGE) break;
+  }
+  return out;
+}
+
 // Loads companies + their per-dimension ratings from Supabase. Falls back to the
 // in-memory seed (lib/seed.ts) when Supabase isn't configured or the query fails,
 // so local dev keeps working without a project wired up.
 export async function loadCompanies(): Promise<Company[]> {
   if (!supabase) return buildCompanies();
 
-  const [{ data: companyRows, error: companyErr }, { data: ratingRows, error: ratingErr }] =
-    await Promise.all([
-      supabase.from("companies").select(COMPANY_COLUMNS),
-      supabase.from("ratings").select("company_id, dimension, elo, games, week_movement, season_start"),
+  let companyRows: CompanyRow[];
+  let ratingRows: RatingRow[];
+  try {
+    [companyRows, ratingRows] = await Promise.all([
+      fetchAll<CompanyRow>("companies", COMPANY_COLUMNS),
+      fetchAll<RatingRow>("ratings", "company_id, dimension, elo, games, week_movement, season_start"),
     ]);
-
-  if (companyErr || ratingErr || !companyRows) {
-    console.error("Supabase load failed, falling back to seed data:", companyErr ?? ratingErr);
+  } catch (err) {
+    console.error("Supabase load failed, falling back to seed data:", err);
     return buildCompanies();
   }
 
