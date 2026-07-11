@@ -39,57 +39,61 @@ interface RatingRow {
   season_start: number;
 }
 
+interface CompanyRowWithRatings extends CompanyRow {
+  ratings: Omit<RatingRow, "company_id">[];
+}
+
 const FALLBACK_GRADIENT = "linear-gradient(135deg,#0eb6a6,#37b6ff)";
 const emptyRating = (): Rating => ({ elo: 1500, games: 0, weekMovement: 0, seasonStart: 1500 });
 
-// PostgREST caps each request at 1000 rows, so page through with .range() until a
-// short page comes back. The roster is now in the thousands (YC import), and every
-// company + all three of its ratings must load for matchmaking and the tables.
+// The app surfaces only the Arena500 (arena_eligible = true) — a fixed ~500, so
+// even as the underlying DB grows into the tens of thousands this stays a small,
+// fast load. Ratings are embedded (PostgREST nests the related rows) so there's no
+// separate ratings query + 1000-row cap to juggle. Non-arena companies are loaded
+// on demand elsewhere (Discover / profile pages). Still page with .range() in case
+// the arena size is ever raised past 1000.
 const PAGE = 1000;
-async function fetchAll<T>(table: string, columns: string): Promise<T[]> {
-  const out: T[] = [];
+const RATINGS_EMBED = "ratings(dimension, elo, games, week_movement, season_start)";
+async function fetchArena(): Promise<CompanyRowWithRatings[]> {
+  const out: CompanyRowWithRatings[] = [];
   for (let from = 0; ; from += PAGE) {
-    const { data, error } = await supabase!.from(table).select(columns).range(from, from + PAGE - 1);
+    const { data, error } = await supabase!
+      .from("companies")
+      .select(`${COMPANY_COLUMNS}, ${RATINGS_EMBED}`)
+      .eq("arena_eligible", true)
+      .range(from, from + PAGE - 1);
     if (error) throw error;
-    const rows = (data ?? []) as T[];
+    const rows = (data ?? []) as unknown as CompanyRowWithRatings[];
     out.push(...rows);
     if (rows.length < PAGE) break;
   }
   return out;
 }
 
-// Loads companies + their per-dimension ratings from Supabase. Falls back to the
-// in-memory seed (lib/seed.ts) when Supabase isn't configured or the query fails,
-// so local dev keeps working without a project wired up.
+// Loads the Arena500 (companies + their per-dimension ratings) from Supabase.
+// Falls back to the in-memory seed (lib/seed.ts) when Supabase isn't configured or
+// the query fails, so local dev keeps working without a project wired up.
 export async function loadCompanies(): Promise<Company[]> {
   if (!supabase) return buildCompanies();
 
-  let companyRows: CompanyRow[];
-  let ratingRows: RatingRow[];
+  let companyRows: CompanyRowWithRatings[];
   try {
-    [companyRows, ratingRows] = await Promise.all([
-      fetchAll<CompanyRow>("companies", COMPANY_COLUMNS),
-      fetchAll<RatingRow>("ratings", "company_id, dimension, elo, games, week_movement, season_start"),
-    ]);
+    companyRows = await fetchArena();
   } catch (err) {
     console.error("Supabase load failed, falling back to seed data:", err);
     return buildCompanies();
   }
 
-  const ratingsByCompany = new Map<number, Record<QKey, Rating>>();
-  for (const r of (ratingRows ?? []) as RatingRow[]) {
-    const ratings = ratingsByCompany.get(r.company_id) ?? ({} as Record<QKey, Rating>);
-    ratings[r.dimension] = {
-      elo: r.elo,
-      games: r.games,
-      weekMovement: r.week_movement,
-      seasonStart: r.season_start,
-    };
-    ratingsByCompany.set(r.company_id, ratings);
-  }
-
-  return (companyRows as CompanyRow[]).map((c) => {
-    const ratings = ratingsByCompany.get(c.id) ?? ({} as Record<QKey, Rating>);
+  return companyRows.map((c) => {
+    const ratings = {} as Record<QKey, Rating>;
+    for (const r of c.ratings ?? []) {
+      ratings[r.dimension] = {
+        elo: r.elo,
+        games: r.games,
+        weekMovement: r.week_movement,
+        seasonStart: r.season_start,
+      };
+    }
     return {
       id: c.id,
       name: c.name,

@@ -1080,7 +1080,7 @@ export default function App() {
           <p className="note">
             {anonDisabled
               ? "⚠ Anonymous sign-ins are disabled in Supabase — votes aren’t being recorded yet. Enable them in Authentication → Sign In / Providers."
-              : `Votes are recorded to your pseudonymous profile · ${companies.length} startups and counting`}
+              : `Votes are recorded to your pseudonymous profile · ranking the Arena ${companies.length}`}
           </p>
           </div>
         </section>

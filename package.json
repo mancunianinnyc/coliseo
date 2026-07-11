@@ -17,6 +17,7 @@
     "db:reset-activity": "tsx scripts/reset-activity.ts",
     "db:retire": "tsx scripts/retire.ts",
     "db:import-yc": "tsx scripts/import-yc.ts",
+    "db:rebuild-arena": "tsx scripts/rebuild-arena.ts",
     "logos:fetch": "tsx scripts/fetch-logos.ts",
     "logos:upgrade": "tsx scripts/upgrade-logos.ts",
     "audit:data": "tsx scripts/audit-data.ts"
