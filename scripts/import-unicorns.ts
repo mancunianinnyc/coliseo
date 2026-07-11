@@ -22,6 +22,18 @@ const bareDomain = (u: string) => (u ?? "").replace(/^https?:\/\//i, "").replace
 const cleanName = (t: string) => t.replace(/\s*\((?:company|software|app|finance|corporation|firm|brand)\)\s*$/i, "").trim();
 
 const COUNTRIES = new Set(["afghanistan","albania","algeria","argentina","armenia","australia","austria","azerbaijan","bahrain","bangladesh","belarus","belgium","bolivia","brazil","bulgaria","cambodia","canada","chile","china","people's republic of china","colombia","costa rica","croatia","cyprus","czech republic","czechia","denmark","kingdom of denmark","ecuador","egypt","estonia","finland","france","georgia","germany","ghana","greece","hong kong","hungary","iceland","india","indonesia","iran","iraq","ireland","republic of ireland","israel","italy","japan","jordan","kazakhstan","kenya","kuwait","latvia","lebanon","liechtenstein","lithuania","luxembourg","malaysia","malta","mexico","monaco","morocco","nepal","netherlands","new zealand","nigeria","north macedonia","norway","oman","pakistan","panama","peru","philippines","poland","portugal","qatar","romania","russia","saudi arabia","senegal","serbia","seychelles","singapore","slovakia","slovenia","south africa","south korea","spain","sri lanka","sweden","switzerland","taiwan","thailand","tunisia","turkey","ukraine","united arab emirates","united kingdom","united states","united states of america","uruguay","uzbekistan","venezuela","vietnam"]);
+// Known exits (IPO / acquired / dead) that Wikidata's P414/P576 miss — a manual
+// blocklist so a hand-reviewed ineligible company can't re-enter on re-import.
+// Keep this list append-only as new exits surface.
+export const EXITED = new Set([
+  "spotify","pinterest","monday.com","applovin","didi","pinduoduo","kuaishou","krafton","mercari",
+  "nykaa","udemy","truecaller","douyu","coveo","deezer","global fashion group","nanthealth","cazoo",
+  "darktrace","ucommune","farfetch","23andme","whatsapp","slack","mulesoft","appdynamics","postmates",
+  "careem","credit karma","kabam","peak games","jet.com","gilt groupe","flipkart","tokopedia","gojek",
+  "avito.ru","suning holdings group","livingsocial","letgo","shopclues","mozido","bloom energy server",
+  "glovo","wolt",
+].map((s) => s.toLowerCase()));
+
 const isGov = (d: string) => /(^|\.)gov(\.|$)|\.gob(\.|$)|\.go\.|admin\.ch|service-public|canada\.ca|australia\.gov|korea\.net|sweden\.se|finland\.fi|norway\.no|indonesia\.go|\.public\.|lietuva\.lt|valitsus\.ee|chinhphu|czechia\.eu|denmark\.dk|ukraine\.ua|italia\.it|iceland\.is|liechtenstein\.li|el-mouradia|oesterreich|verwaltung\.bund/.test(d);
 const isMedia = (d: string) => /forbes|venturebeat|techcrunch|cbinsights|bloomberg|reuters|(^|\.)cnn|wsj|nytimes|businessinsider|wikipedia|wikimedia|crunchbase|pitchbook|tracxn|fortune|theinformation/.test(d);
 
@@ -126,7 +138,7 @@ async function main() {
       .filter((u: any) => {
         const d = bareDomain(u.website || "");
         if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(d)) return false;
-        if (isGov(d) || isMedia(d) || COUNTRIES.has(u.name.toLowerCase())) return false;
+        if (isGov(d) || isMedia(d) || COUNTRIES.has(u.name.toLowerCase()) || EXITED.has(u.name.toLowerCase())) return false;
         // Startup-era floor: a "unicorn" founded before 2005 is almost always a
         // long-since-exited company (LinkedIn, MySQL, Skyscanner…) that Wikidata's
         // exit data missed, or an old non-startup. Unknown founding years are kept
