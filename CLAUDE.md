@@ -11,7 +11,27 @@ Coliseo (formerly ConvictionELO) is a daily game where people vote on head-to-he
 - **Next.js 14 (App Router) + TypeScript + React 18**
 - Plain CSS with design tokens in `app/globals.css` (no Tailwind yet — match the existing tokens if you add a framework)
 - **Supabase** (Postgres, auth, RLS) is the backend. Companies/ratings load from the DB, anonymous auth mints a pseudonymous identity, `cast_vote` applies Elo server-side, `profiles` persist streak/tier, and `submit_company` creates moderated pending submissions. Schema/RPCs live in `supabase/`.
-- Deploy target: **Vercel**. The production project is `convictionelo`.
+- Deploy target: **Vercel**. The production project is `convictionelo` (GitHub repo is `mancunianinnyc/coliseo`; the URL `convictionelo.vercel.app` is deliberately kept so beta links keep working).
+
+## Data & the Arena500 (current state, July 2026)
+
+The DB holds **~4,550 companies** from three sources (the `companies.source` column):
+`seed` (~277 hand-curated), `yc` (~4,100 Y Combinator companies via the open yc-oss
+dataset), and `unicorn` (~160 from the Wikipedia unicorn list resolved through
+Wikidata). But the app only surfaces the **Arena500** — a fixed ~500 top companies by a
+notability score (`arena_eligible = true`) — so votes concentrate and the Elo stays
+credible no matter how large the DB gets. `loadCompanies` loads **only** the arena.
+
+- **Arena eligibility (guideline, enforced by the importers):** private, alive,
+  venture-backed startups founded ≥2005. NOT public/acquired/dead (those *graduate* —
+  `lifecycle != 'active'` — and drop out of the arena automatically), and NOT
+  people/countries or bootstrapped/family-owned private giants (e.g. Cargill).
+  `scripts/import-unicorns.ts` carries an append-only `EXITED` blocklist for known
+  exits that Wikidata's stock-exchange/dissolution data misses.
+- **Reconstitution:** `npm run db:rebuild-arena [-- N]` re-scores every active company
+  and marks the top N (default 500) — run it after any import (S&P-500-style
+  promotion/relegation). **Prominence is a STABLE source signal that feeds the score —
+  never mutate it inside rebuild** (doing so created a feedback loop that churned the tail).
 
 ## Project structure
 
@@ -25,9 +45,10 @@ lib/
   types.ts          Company, Rating, Vote types
   questions.ts      The 3 dimensions (Conviction / Momentum / Talent) + order
   elo.ts            Elo math, credibility tiers, composite score  ← pure, unit-testable
-  seed.ts           18 seed startups with divergent per-dimension ratings
+  seed.ts           Builds ~277 hand-curated seed companies (from companies.data.ts)
+  companies.data.ts The seed dataset + CATEGORIES/REGIONS/Stage + EXITS (graduated) map
   supabase.ts       Browser Supabase client (null when env not configured)
-  loadCompanies.ts  Loads companies + ratings from the DB (falls back to seed)
+  loadCompanies.ts  Loads the Arena500 (arena_eligible companies) + ratings from the DB
   auth.ts           useSession(): anonymous sign-in + pseudonymous identity
   profile.ts        Load/create profile, persist streak/tier
   castVote.ts       RPC client for server-authoritative voting
@@ -38,10 +59,14 @@ supabase/
   cast_vote.sql     Server-authoritative vote + Elo RPC
   submit_company.sql  Moderated submission RPC
   launch_hardening.sql  Indexes, grants, RLS optimization, rate-limit plumbing
-scripts/
-  apply-schema.ts   Apply schema.sql to the DB (npm run db:apply-schema)
-  seed.ts           Seed companies + ratings from lib/seed.ts (npm run db:seed)
-  reset-test-data.ts  Wipe votes/profiles/revisions before launch (npm run db:reset-test-data)
+scripts/            (all via npm run db:* ; DB scripts connect through the Supabase pooler)
+  apply-schema.ts   Apply schema.sql (db:apply-schema); seed.ts seeds from lib/seed (db:seed)
+  import-yc.ts      Bulk-import active YC companies from yc-oss (db:import-yc [-- --dry])
+  import-unicorns.ts  Import unicorns via Wikipedia + Wikidata (db:import-unicorns [-- --dry])
+  rebuild-arena.ts  Reconstitute the Arena500 (db:rebuild-arena [-- N])
+  retire.ts         Graduate a company (db:retire -- "Name" public|acquired|dead "note")
+  reset-activity.ts  Non-destructive reset: clear votes/profiles, KEEP companies (db:reset-activity)
+  pending.ts        List the pending-submission queue (db:pending)
 ```
 
 **Environment note:** on Windows, keep this repo OUT of a OneDrive-synced folder —
