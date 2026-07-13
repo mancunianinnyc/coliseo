@@ -85,6 +85,15 @@ body {
 .daily .txt b { color: var(--ink); }
 .simday { background: none; border: none; color: var(--teal2); font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap; }
 
+/* First-run banner — replaces the auto-shown onboarding modal so a new
+   visitor's first vote is castable immediately. Deliberately quiet. */
+.onboard-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(14, 182, 166, .08); border: 1px solid rgba(14, 182, 166, .25); border-radius: 14px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; line-height: 1.4; color: var(--ink); }
+.onboard-banner b { color: var(--teal2); }
+.ob-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.ob-link { background: none; border: none; color: var(--teal2); font-weight: 800; font-size: 12.5px; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; padding: 0; }
+.ob-x { background: none; border: none; color: var(--muted); font-size: 14px; cursor: pointer; padding: 2px 4px; }
+.ob-x:hover { color: var(--ink); }
+
 .qbar { text-align: center; margin: 6px 0 18px; }
 .qbar .k { font-size: 12px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; font-weight: 800; }
 .qbar h1 { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: clamp(23px, 5.6vw, 32px); line-height: 1.12; margin-top: 8px; letter-spacing: -.4px; text-wrap: balance; }

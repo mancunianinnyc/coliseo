@@ -11,7 +11,7 @@ import { castVote, votesTodayCount, votesLifetimeCount, exhibitionTodayCount } f
 import { submitCompany } from "@/lib/submitCompany";
 import { flagUnknown } from "@/lib/unknowns";
 import { track, installErrorTracking } from "@/lib/track";
-import { buildDailyShareUrl, buildRunShareUrl, companySlug, SITE_URL } from "@/lib/share";
+import { buildDailyShareUrl, buildRunShareUrl, coliseoDayNumber, companySlug, SITE_URL } from "@/lib/share";
 import {
   applyElo,
   composite,
@@ -170,9 +170,12 @@ export default function App() {
   const [stageFilter, setStageFilter] = useState<string>("All");
   const [showFilters, setShowFilters] = useState(false);
   const [showGrads, setShowGrads] = useState(false);
-  // First-run explainer overlay — opened on a visitor's first ever load (see the
-  // ONBOARD_KEY effect) and dismissed for good once they've seen it.
+  // First-run explainer. The full modal is now ON-DEMAND only ("How it works"
+  // links) — a first-time visitor instead gets a compact, non-blocking banner
+  // above the arena, so their first vote is castable immediately (the Hot or
+  // Not / FaceMash lesson: nothing between landing and the first tap).
   const [showOnboard, setShowOnboard] = useState(false);
+  const [showOnboardBanner, setShowOnboardBanner] = useState(false);
   // The "you've used today's 3 picks" popup — shown when a finished user lands
   // back on the Vote tab (the vote area itself is also locked when doneToday).
   const [showLimitModal, setShowLimitModal] = useState(false);
@@ -227,11 +230,11 @@ export default function App() {
     };
   }, []);
 
-  // Show the first-run explainer once per browser. localStorage may be
-  // unavailable (private mode / blocked); if so, just skip it silently.
+  // Show the first-run BANNER (not the modal) once per browser. localStorage
+  // may be unavailable (private mode / blocked); if so, just skip it silently.
   useEffect(() => {
     try {
-      if (localStorage.getItem(ONBOARD_KEY) !== "1") setShowOnboard(true);
+      if (localStorage.getItem(ONBOARD_KEY) !== "1") setShowOnboardBanner(true);
     } catch {
       /* no-op */
     }
@@ -456,6 +459,7 @@ export default function App() {
     setDecided(null);
 
     track("vote_cast", { kind: "arena", round: pickIndex + 1 });
+    if (showOnboardBanner) dismissOnboardBanner("vote");
 
     // Authoritative server record + Elo. Reconcile local ratings to the values
     // the DB actually applied (self-heals any optimistic drift; on refresh the
@@ -670,12 +674,13 @@ export default function App() {
     track("share", { what: "run", outcome: runOver.outcome });
     const champName = byId.get(runOver.champId)?.name ?? "My champion";
     const conqueror = runOver.conquerorId != null ? byId.get(runOver.conquerorId)?.name : null;
-    const text =
+    const outcomeLine =
       runOver.outcome === "dethroned"
-        ? `⚔️ Exhibition run on Coliseo: ${champName} outlasted ${runOver.defenses} challenger${runOver.defenses === 1 ? "" : "s"} before falling to ${conqueror}.`
+        ? `⚔️ ${champName} outlasted ${runOver.defenses} challenger${runOver.defenses === 1 ? "" : "s"} before falling to ${conqueror}`
         : runOver.outcome === "undefeated"
-          ? `👑 ${champName} went ${runOver.defenses}-0 in Coliseo exhibition bouts — retired undefeated.`
-          : `🏁 ${champName} retired with ${runOver.defenses} exhibition win${runOver.defenses === 1 ? "" : "s"} on Coliseo.`;
+          ? `👑 ${champName} went ${runOver.defenses}-0 — retired undefeated`
+          : `🏁 ${champName} retired with ${runOver.defenses} exhibition win${runOver.defenses === 1 ? "" : "s"}`;
+    const text = `🏛️ Coliseo #${coliseoDayNumber()} · Exhibition\n${outcomeLine}`;
     const url = buildRunShareUrl({
       champId: runOver.champId,
       qk: voteQ,
@@ -724,24 +729,36 @@ export default function App() {
   // desktop. This is the seed of the dynamic share-image / OG-card growth loop.
   function shareCalls() {
     track("share", { what: "calls" });
-    const lines = todaysPicks
-      .map((p) => `${QUESTIONS[p.q].label}: ${p.win} > ${p.lose}`)
-      .join("\n");
-    const text = `My Coliseo calls today\n${lines}\n🔥 ${streak}-day streak`;
-    // Canonical share link → /s (champion card OG image unfurls in the feed).
+    // Compact, emoji-led, text-first result (the Wordle lesson: the plain-text
+    // artifact is what spreads in WhatsApp/X/group chats — images and links
+    // add friction). Champion-centric: WHO survived is the debate bait.
     const last = todaysPicks[todaysPicks.length - 1];
     let url = SITE_URL;
+    let text = `🏛️ Coliseo #${coliseoDayNumber()}`;
     if (last) {
       const seen = new Set([last.winId]);
       const outlastedIds: number[] = [];
+      const outlastedNames: string[] = [];
       for (const p of todaysPicks) {
-        for (const id of [p.winId, p.loseId]) {
+        for (const [id, name] of [
+          [p.winId, p.win],
+          [p.loseId, p.lose],
+        ] as [number, string][]) {
           if (!seen.has(id)) {
             seen.add(id);
             outlastedIds.push(id);
+            outlastedNames.push(name);
           }
         }
       }
+      text = [
+        `🏛️ Coliseo #${coliseoDayNumber()} · ${QUESTIONS[todaysPicks[0].q].label} day`,
+        `👑 ${last.win} — my last one standing`,
+        outlastedNames.length ? `⚔️ Outlasted ${outlastedNames.join(", ")}` : null,
+        streak > 1 ? `🔥 ${streak}-day streak` : null,
+      ]
+        .filter(Boolean)
+        .join("\n");
       url = buildDailyShareUrl({ champId: last.winId, qk: todaysPicks[0].q, streak, outlastedIds });
     }
     if (typeof navigator !== "undefined" && navigator.share) {
@@ -762,13 +779,26 @@ export default function App() {
   // Close the first-run explainer and remember it, so it never shows again on
   // this browser.
   function dismissOnboard() {
-    track("onboard_dismissed");
+    track("onboard_dismissed", { via: "modal" });
     try {
       localStorage.setItem(ONBOARD_KEY, "1");
     } catch {
       /* no-op */
     }
     setShowOnboard(false);
+    setShowOnboardBanner(false); // read the full explainer → banner is redundant
+  }
+
+  // Dismiss the first-run banner (✕, or automatically on the first committed
+  // vote — by then they've clearly got it).
+  function dismissOnboardBanner(via: "banner" | "vote" = "banner") {
+    track("onboard_dismissed", { via });
+    try {
+      localStorage.setItem(ONBOARD_KEY, "1");
+    } catch {
+      /* no-op */
+    }
+    setShowOnboardBanner(false);
   }
 
   // Auto-fill the Submit form from the company's own website (see
@@ -1329,6 +1359,24 @@ export default function App() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          {/* First-run explainer as a NON-BLOCKING banner — the first vote
+              stays one tap away (see the showOnboardBanner state). */}
+          {showOnboardBanner && !exhibition && (
+            <div className="onboard-banner" role="note">
+              <span>
+                <b>First time?</b> Tap the startup you believe in — 3 picks a day, every vote moves
+                a live rating.
+              </span>
+              <span className="ob-actions">
+                <button className="ob-link" onClick={() => setShowOnboard(true)}>
+                  How it works
+                </button>
+                <button className="ob-x" aria-label="Dismiss" onClick={() => dismissOnboardBanner()}>
+                  ✕
+                </button>
+              </span>
             </div>
           )}
           <div className="step" ref={activeStepRef}>

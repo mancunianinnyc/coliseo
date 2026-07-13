@@ -29,6 +29,11 @@ const qs = (pairs: Record<string, string | number | null | undefined>) =>
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+// Sequential daily-puzzle number, Wordle-convention ("Coliseo #16"). UTC-day
+// based, same clock as the daily question rotation. Epoch: July 1, 2026.
+const DAY_EPOCH = Date.UTC(2026, 6, 1);
+export const coliseoDayNumber = () => Math.floor((Date.now() - DAY_EPOCH) / 86_400_000) + 1;
+
 // ---- Company profile slugs (/c/[slug]) ----
 // Shape: "monzo-51" — the trailing id is canonical (rename-proof, no DB slug
 // column needed); the name part is cosmetic + SEO. A wrong/stale name part
