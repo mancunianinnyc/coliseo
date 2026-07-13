@@ -30,7 +30,7 @@ const STAGES = ["Early", "Growth", "Late"] as const;
 
 // First-run onboarding is shown once per browser. Bump the version suffix to
 // re-show the explainer after a material change to its copy.
-const ONBOARD_KEY = "ce_onboarded_v4";
+const ONBOARD_KEY = "ce_onboarded_v5"; // v5: added the exhibition step
 
 // Exhibition bouts — the post-daily survival run. The day's champion keeps
 // defending against fresh challengers; every bout is a real (append-only) vote
@@ -1123,6 +1123,14 @@ export default function App() {
               <span>Picks made today</span>
               <b>{Math.min(pickIndex, 3)} / 3</b>
             </div>
+            {doneToday && (
+              <div className="rail-row">
+                <span>Exhibition bouts</span>
+                <b>
+                  {Math.min(exhibitionUsed, EXHIBITION_CAP)} / {EXHIBITION_CAP}
+                </b>
+              </div>
+            )}
             <div className="rail-row">
               <span>Vote weight</span>
               <b>×{tier.mult.toFixed(2)}</b>
@@ -1910,6 +1918,13 @@ export default function App() {
                   <b>One question a day, rotating:</b> 💰 which you&apos;d put your entire net worth
                   into, 🔥 which is winning right now, or 🧲 which pulls in the killer talent. Every
                   vote moves a live rating; finish your three to unlock the leaderboard.
+                </span>
+              </li>
+              <li>
+                <span className="onboard-ic">👑</span>
+                <span>
+                  <b>Then, exhibition.</b> Done with your three? Your champion can keep defending the
+                  crown — bonus bouts at ¼ weight. How long can it survive?
                 </span>
               </li>
             </ol>

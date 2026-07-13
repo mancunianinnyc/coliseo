@@ -19,13 +19,15 @@ The name has a deliberate double meaning: *conviction* is both the investor term
 
 Land → see today's matchup → tap the winner → watch the Elo move → get prompted to share the result or submit a company. Everything else supports that loop.
 
-**Daily structure:** 3 picks per day, one per dimension (see §3). Complete all 3 to keep your streak alive. Scarcity (only 3/day) is intentional — it makes each vote matter and gives a reason to return tomorrow rather than binge-and-churn.
+**Daily structure (current, July 2026):** one question per day (rotating through the three dimensions by calendar day, same question for everyone), played as a 3-round **king-of-the-hill gauntlet**: pick a winner, it stays on and faces a fresh challenger. Complete all 3 arena picks to keep your streak alive and unlock the tables. Scarcity (only 3 full-weight picks/day) is intentional — it makes each vote matter and gives a reason to return tomorrow rather than binge-and-churn.
+
+**Exhibition bouts (post-daily):** after the arena 3, the day's champion can keep defending in an optional survival run — real, append-only votes at **¼ vote weight**, capped at 10/day, with challengers drawn from deeper in the arena (a discovery surface). The run ends when the champion is dethroned, retired, or capped; streak/leaderboard/share-card stay tied to the arena picks only (`votes.kind`: `arena` | `exhibition`).
 
 ---
 
 ## 3. The three questions (dimensions)
 
-Each daily set walks the user through one pick per dimension, in order:
+One dimension is active per day, rotating in this order (all 3 of a day's picks share it):
 
 | # | Dimension | Question shown | Feeds table |
 |---|-----------|----------------|-------------|
@@ -79,7 +81,7 @@ Completing your 3 daily picks increments a **streak** (consecutive days). The st
 ## 6. Screens / features (MVP surface)
 
 1. **Vote** — the home screen. Two company cards, one question, one tap. Reveals Elo deltas (▲/▼), a verdict line (chalk pick / upset / coin-flip based on the crowd expected score), then Next / Share prompts. Progress dots + "picks left today" + live vote-weight are always visible. Matchmaking prefers **similar-rated peers** (cohorting) on the active dimension.
-2. **Daily complete** — after 3 picks: recaps the day's three verdicts in one box (pre-share summary), ticks the streak, shows the new tier.
+2. **Daily complete** — after the 3 arena picks: a champion-centric share card (the day's last one standing + the field it outlasted), ticks the streak, shows the new tier, and offers the **exhibition** entry ("X still stands — enter the exhibition →").
 3. **Tables (leaderboards)** — rating selector (Overall / Value / Growth / Workplace) **×** league dimension (Category / Region / Stage) **×** filter chips (🌍 Global + each sub-league). Rows show rank, logo, Elo, and per-dimension weekly movement. Football-table feel, not one monolithic list.
 4. **Profile** — public dossier: composite Overall rank + Elo up top, then the three dimension ratings with ranks, confidence, total matchups, website, and a "✏️ Suggest an edit" control (wiki-style, creates a pending revision — stubbed in prototype).
 5. **Submit** — URL-first form (auto-enrich name/logo/category from the site in the real build), plus a lightweight community-validation checklist (correct website / real founders / not a duplicate). New submissions are **pending** and reviewed before going live.
@@ -181,7 +183,7 @@ Alternatives: Replit Agent (strongest single-vendor prompt→deploy), v0 (design
 >
 > Core loop: a signed-in user gets **3 daily head-to-head matchups**, one per dimension — **Value** ("worth more in 10 years?"), **Growth** ("grow faster this year?"), **Workplace** ("rather work at for 10 years?"). Each pick is one tap between two company cards (logo, name, category·region·stage, one-line pitch). Each dimension has its own **Elo** rating per company (expected = 1/(1+10^((eb-ea)/400)); K=48 if <10 games else 20 late-stage / 32 growth-stage; multiply the delta by the voter's credibility weight). Store **every vote as an append-only row** (voter, companyA, companyB, dimension, winner, voterTier, timestamp).
 >
-> Completing all 3 picks increments a **daily streak** → **credibility tier** (Rookie/Regular/Sharp/Analyst/Oracle/Legend at streaks 0/2/4/7/14/30 → vote weight 1.00→1.35×). A missed day decays one tier (not a full reset).
+> Completing all 3 arena picks increments a **daily streak** → **credibility tier** (Rookie/Regular/Sharp/Analyst/Oracle/Legend at streaks 0/2/4/7/14/30 → vote weight 1.00→1.35×). A missed day decays one tier (not a full reset). Exhibition bouts never affect the streak, and apply a further ×0.25 on the vote weight.
 >
 > Screens: **Vote** (with progress dots + picks-left + live vote weight; matchmaking prefers similar-Elo peers), **Daily complete** (recap 3 verdicts, streak up), **Tables** (a default **Overall** table = equal-weighted average of the 3 Elos, plus per-dimension tables, each filterable by Category / Region / Stage with a Global option and per-dimension weekly movement), **Profile** (composite rank + 3 dimension ratings, confidence label Provisional/Established, "suggest an edit" creating a pending revision), **Submit** (URL-first; new companies enter all 3 tables at Elo 1500, pending review), and a branded **share card** per result ("I called who'll grow faster: X over Y" + Elo delta + streak) with a dynamic OG image.
 >

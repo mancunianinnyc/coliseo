@@ -38,7 +38,7 @@ To continue building in Lovable, Replit, or v0: share **`ConvictionELO-spec.md`*
 
 - **Name:** ConvictionELO · **Domain (mock):** convictionelo.com
 - **Three dimensions:** Conviction, Momentum, Talent — each its own Elo; a single equal-weighted **Overall** composite table on top.
-- **Daily loop:** 3 picks/day, single-tap, one per dimension.
+- **Daily loop:** 3 arena picks/day on the day's rotating question, played king-of-the-hill (your winner stays on and faces a fresh challenger); then optional **exhibition bouts** — a survival run for the day's champion at ¼ vote weight, capped at 10/day.
 - **Retention:** streak → credibility tier (Rookie→Legend) → vote weight. Missed day decays one tier (not a full reset).
 - **Design:** light & airy, teal/sky accents (no purple), Fraunces + Space Grotesk.
 - **Deferred:** betting/prediction markets, founder accounts, mobile app, paid plans.

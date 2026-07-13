@@ -100,14 +100,18 @@ remaining signed-in `SECURITY DEFINER` advisor warning is expected while the
 browser calls `cast_vote`/`submit_company` directly through Supabase.
 
 ### 9. Anti-manipulation / rate limiting
-Anonymous accounts are free to mint, so `cast_vote`'s 3-per-day limit is
-per-account, not per-person — a determined brigade could skew a ranking.
+Anonymous accounts are free to mint, so `cast_vote`'s daily limits (3 arena
+picks + 10 quarter-weight exhibition bouts, per local day) are per-account, not
+per-person — a determined brigade could skew a ranking.
 
 Current baseline:
-- `cast_vote` is limited per user and per IP over a short window.
+- `cast_vote` is limited per user and per IP over a short window, and enforces
+  both daily caps server-side (exhibition additionally requires the day's 3
+  arena picks to be done first).
 - `submit_company` is limited per user and per IP over a daily window.
-- `votes` has a unique `(voter_id, dimension, vote_day)` index to protect
-  against concurrent duplicate votes.
+- (The old unique `(voter_id, dimension, vote_day)` index was dropped with the
+  king-of-the-hill change — a day's 3 arena votes share one dimension; the
+  count-based checks inside `cast_vote` are the guard now.)
 
 Before a high-traffic post, add Vercel Firewall rules for `/api/enrich`, consider
 CAPTCHA on suspicious submission patterns, and add dashboard monitoring for vote

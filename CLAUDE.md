@@ -4,7 +4,7 @@ Project guide for Claude Code / AI agents working in this repo. Read this first,
 
 ## What this is
 
-Coliseo (formerly ConvictionELO) is a daily game where people vote on head-to-head startup matchups. Each vote nudges a live Elo rating (three independent ratings per company: **Conviction**, **Momentum**, **Talent**), and daily play builds a streak → credibility tier → vote weight. See `ConvictionELO-spec.md` for the complete spec (mechanics, roadmap, design tokens, Supabase schema) — it is the source of truth.
+Coliseo (formerly ConvictionELO) is a daily game where people vote on head-to-head startup matchups. Each vote nudges a live Elo rating (three independent ratings per company: **Conviction**, **Momentum**, **Talent**), and daily play builds a streak → credibility tier → vote weight. The day = 3 full-weight **arena** picks (king-of-the-hill on one rotating question), then an optional **exhibition** survival run — real append-only votes at ¼ weight, capped at 10/day (`votes.kind`: `arena`|`exhibition`; constants `EXHIBITION_WEIGHT`/`EXHIBITION_CAP` in `app/App.tsx` must stay in sync with `supabase/cast_vote.sql`). Streak/leaderboard-unlock/share-card hang off arena votes only. See `ConvictionELO-spec.md` for the complete spec (mechanics, roadmap, design tokens, Supabase schema) — it is the source of truth.
 
 ## Stack
 
@@ -56,7 +56,8 @@ lib/
   unknowns.ts       Obscurity signal writes
 supabase/
   schema.sql        Base tables + RLS policies
-  cast_vote.sql     Server-authoritative vote + Elo RPC
+  cast_vote.sql     Server-authoritative vote + Elo RPC (arena + ¼-weight exhibition kinds)
+  exhibition.sql    votes.kind column + index (apply BEFORE cast_vote.sql)
   submit_company.sql  Moderated submission RPC
   launch_hardening.sql  Indexes, grants, RLS optimization, rate-limit plumbing
 scripts/            (all via npm run db:* ; DB scripts connect through the Supabase pooler)
