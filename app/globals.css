@@ -166,6 +166,11 @@ body {
 .result-card p { color: var(--muted); font-size: 13px; font-weight: 600; line-height: 1.45; margin-top: 6px; }
 .nextbtn { display: block; margin: 14px auto 0; background: linear-gradient(135deg, var(--teal), var(--sky)); color: #fff; border: none; font-weight: 800; font-size: 15px; padding: 13px 30px; border-radius: 14px; cursor: pointer; box-shadow: 0 8px 20px rgba(14, 182, 166, .35); }
 .sharebtn { display: block; margin: 10px auto 0; background: var(--card); border: 1px solid var(--line); color: var(--ink); font-weight: 700; font-size: 13px; padding: 9px 20px; border-radius: 12px; cursor: pointer; box-shadow: var(--shadow-sm); }
+/* Platform icon row under a share button — brand glyphs make the social CTA
+   unmistakable. */
+.share-row { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+.share-ico { width: 42px; height: 42px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow-sm); display: grid; place-items: center; cursor: pointer; transition: .15s; }
+.share-ico:hover { border-color: var(--teal); transform: translateY(-1px); }
 
 .done-card { background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); border-radius: 22px; padding: 30px 24px; text-align: center; }
 .done-card .big { font-size: 46px; }
