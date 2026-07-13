@@ -213,7 +213,7 @@ export async function GET(req: NextRequest) {
             {p && p.t === "d" && p.s > 0 ? `🔥 ${p.s}-day streak` : "⚔️ Which would you back?"}
           </div>
           <div style={{ display: "flex", fontSize: 20, color: MUTED, fontWeight: 700 }}>
-            convictionelo.vercel.app
+            coliseoelo.com
           </div>
         </div>
       </div>

@@ -1,8 +1,9 @@
 import type { QKey } from "./types";
 
-// Canonical public origin for share links + OG image URLs. Update when the
-// custom domain lands (keep the vercel.app URL working — old shares live on).
-export const SITE_URL = "https://convictionelo.vercel.app";
+// Canonical public origin for share links + OG image URLs. The old
+// convictionelo.vercel.app URL keeps serving (beta links live on); this is
+// what NEW share links spread.
+export const SITE_URL = "https://coliseoelo.com";
 
 // A share link's payload, carried in /s query params and consumed by both the
 // share landing page (app/s/page.tsx) and the OG image (app/api/og/route.tsx).

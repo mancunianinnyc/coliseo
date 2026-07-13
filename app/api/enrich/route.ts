@@ -104,7 +104,7 @@ export async function GET(request: Request) {
       headers: {
         // Some sites serve minimal/blocked responses to non-browser agents.
         "User-Agent":
-          "Mozilla/5.0 (compatible; Coliseo/1.0; +https://convictionelo.vercel.app)",
+          "Mozilla/5.0 (compatible; Coliseo/1.0; +https://coliseoelo.com)",
         Accept: "text/html,application/xhtml+xml",
       },
     });

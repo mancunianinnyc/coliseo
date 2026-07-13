@@ -11,7 +11,7 @@ Coliseo (formerly ConvictionELO) is a daily game where people vote on head-to-he
 - **Next.js 14 (App Router) + TypeScript + React 18**
 - Plain CSS with design tokens in `app/globals.css` (no Tailwind yet — match the existing tokens if you add a framework)
 - **Supabase** (Postgres, auth, RLS) is the backend. Companies/ratings load from the DB, anonymous auth mints a pseudonymous identity, `cast_vote` applies Elo server-side, `profiles` persist streak/tier, and `submit_company` creates moderated pending submissions. Schema/RPCs live in `supabase/`.
-- Deploy target: **Vercel**. The production project is `convictionelo` (GitHub repo is `mancunianinnyc/coliseo`; the URL `convictionelo.vercel.app` is deliberately kept so beta links keep working).
+- Deploy target: **Vercel**. The production project is `convictionelo` (GitHub repo is `mancunianinnyc/coliseo`). Canonical domain: **coliseoelo.com** (Namecheap DNS → Vercel; `www` 308-redirects to apex; `SITE_URL` in `lib/share.ts` + `metadataBase` in `app/layout.tsx` must match). The old `convictionelo.vercel.app` URL still serves so beta links keep working.
 
 ## Data & the Arena500 (current state, July 2026)
 
