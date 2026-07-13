@@ -11,6 +11,7 @@ import { castVote, votesTodayCount, votesLifetimeCount, exhibitionTodayCount } f
 import { submitCompany } from "@/lib/submitCompany";
 import { flagUnknown } from "@/lib/unknowns";
 import { track, installErrorTracking } from "@/lib/track";
+import { buildDailyShareUrl, buildRunShareUrl, SITE_URL } from "@/lib/share";
 import {
   applyElo,
   composite,
@@ -675,7 +676,13 @@ export default function App() {
         : runOver.outcome === "undefeated"
           ? `👑 ${champName} went ${runOver.defenses}-0 in Coliseo exhibition bouts — retired undefeated.`
           : `🏁 ${champName} retired with ${runOver.defenses} exhibition win${runOver.defenses === 1 ? "" : "s"} on Coliseo.`;
-    const url = "https://convictionelo.vercel.app";
+    const url = buildRunShareUrl({
+      champId: runOver.champId,
+      qk: voteQ,
+      outcome: runOver.outcome,
+      defenses: runOver.defenses,
+      conquerorId: runOver.conquerorId,
+    });
     if (typeof navigator !== "undefined" && navigator.share) {
       void navigator.share({ title: "Coliseo", text, url }).catch(() => {});
       return;
@@ -721,7 +728,22 @@ export default function App() {
       .map((p) => `${QUESTIONS[p.q].label}: ${p.win} > ${p.lose}`)
       .join("\n");
     const text = `My Coliseo calls today\n${lines}\n🔥 ${streak}-day streak`;
-    const url = "https://convictionelo.vercel.app";
+    // Canonical share link → /s (champion card OG image unfurls in the feed).
+    const last = todaysPicks[todaysPicks.length - 1];
+    let url = SITE_URL;
+    if (last) {
+      const seen = new Set([last.winId]);
+      const outlastedIds: number[] = [];
+      for (const p of todaysPicks) {
+        for (const id of [p.winId, p.loseId]) {
+          if (!seen.has(id)) {
+            seen.add(id);
+            outlastedIds.push(id);
+          }
+        }
+      }
+      url = buildDailyShareUrl({ champId: last.winId, qk: todaysPicks[0].q, streak, outlastedIds });
+    }
     if (typeof navigator !== "undefined" && navigator.share) {
       void navigator.share({ title: "Coliseo", text, url }).catch(() => {});
       return;

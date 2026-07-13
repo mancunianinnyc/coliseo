@@ -43,6 +43,9 @@ app/
   globals.css       Design tokens + component styles
   api/arena/        Cached Arena500 endpoint (ISR 60s) — clients read this, not
                     PostgREST directly, so traffic spikes hit Vercel's cache not the DB
+  api/og/           Dynamic OG share image (edge runtime — REQUIRED, node build of
+                    @vercel/og crashes on Windows paths with spaces)
+  s/                Share landing page — share links point here; OG meta → /api/og
 lib/
   types.ts          Company, Rating, Vote types
   questions.ts      The 3 dimensions (Conviction / Momentum / Talent) + order

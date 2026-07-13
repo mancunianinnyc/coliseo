@@ -3,6 +3,8 @@ import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  // Absolute base for OG/twitter image URLs (share cards resolve against this).
+  metadataBase: new URL("https://convictionelo.vercel.app"),
   title: "Coliseo — Head-to-head startup ranking & discovery",
   description:
     "Head-to-head startup ranking & discovery. Vote on startup matchups across Conviction, Momentum & Talent — discover companies you didn't know, and see how the crowd really ranks them.",
