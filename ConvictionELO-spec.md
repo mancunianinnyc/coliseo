@@ -195,4 +195,4 @@ Alternatives: Replit Agent (strongest single-vendor prompt→deploy), v0 (design
 
 - `app/` — the production Next.js + Supabase app (the whole interactive client is `app/App.tsx`).
 - `ConvictionELO-spec.md` — this document.
-- `Startup ELO.md` — the original strategy blueprint (rationale, citations, deeper reasoning behind every decision here).
+- `METHODOLOGY.md` — the public "check our math" explanation of the scoring (plain English + exact formulas). (The original strategy blueprint and launch/ops docs live outside this public repo.)

@@ -12,7 +12,6 @@ A daily game where people vote on head-to-head startup matchups. Each vote nudge
 |------|------------|
 | **[METHODOLOGY.md](./METHODOLOGY.md)** | Plain-English explanation of how the scoring works — the Elo math, vote weighting, fair matchmaking, and the exact formulas. "Check our math" for a trust product. |
 | **[ConvictionELO-spec.md](./ConvictionELO-spec.md)** | The single source of truth. Full product spec, mechanics, Elo math, data model, design tokens, recommended stack, roadmap, and a ready-to-paste bootstrap prompt for Lovable / Replit / v0. **Read this first.** |
-| **[Startup ELO.md](./Startup%20ELO.md)** | The original strategy blueprint — the deeper rationale and citations behind every product decision. |
 
 ## Run the app
 
@@ -48,8 +47,8 @@ To continue building in Lovable, Replit, or v0: share **`ConvictionELO-spec.md`*
 - **GitHub:** `mancunianinnyc/coliseo`
 - **Vercel:** `convictionelo` Next.js project
 - **Supabase:** `ConvictionELO` in `ca-central-1`
-- **Launch hardening:** see `supabase/launch_hardening.sql` and
-  `LAUNCH_CHECKLIST.md`
+- **Launch hardening:** see `supabase/launch_hardening.sql`
+- **Live at:** [coliseoelo.com](https://coliseoelo.com)
 
 ## Repository contents
 
@@ -70,7 +69,7 @@ lib/                    pure domain logic (framework-agnostic)
 supabase/               Postgres schema, RPCs, and launch hardening SQL
 CLAUDE.md               guide for Claude Code / AI agents working in the repo
 ConvictionELO-spec.md   product spec + build handoff (source of truth)
-Startup ELO.md          original strategy blueprint
+METHODOLOGY.md          how the scoring works ("check our math")
 .env.example            env keys for the Supabase step
 ```
 

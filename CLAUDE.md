@@ -91,7 +91,9 @@ npm run dev      # http://localhost:3000
 With Supabase configured via `.env.local`, the app loads companies from the DB and
 signs the visitor in anonymously. Without it, the app falls back to in-memory seed data.
 
-**Before any public launch, see [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md)**.
+**Launch/ops checklist and GTM docs live OUTSIDE this public repo** (local:
+`..\Coliseo-LAUNCH_CHECKLIST.md` and `..\Coliseo-GTM.md` in the workspace root —
+deliberate: operational strategy isn't for the public repo).
 
 ## Conventions & guardrails
 
