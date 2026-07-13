@@ -7,7 +7,7 @@ import { loadCompanies } from "@/lib/loadCompanies";
 import { CATEGORIES, REGIONS } from "@/lib/companies.data";
 import { useSession } from "@/lib/auth";
 import { loadProfile, saveStreak } from "@/lib/profile";
-import { castVote, votesTodayCount, votesLifetimeCount } from "@/lib/castVote";
+import { castVote, votesTodayCount, votesLifetimeCount, exhibitionTodayCount } from "@/lib/castVote";
 import { submitCompany } from "@/lib/submitCompany";
 import { flagUnknown } from "@/lib/unknowns";
 import {
@@ -31,6 +31,15 @@ const STAGES = ["Early", "Growth", "Late"] as const;
 // First-run onboarding is shown once per browser. Bump the version suffix to
 // re-show the explainer after a material change to its copy.
 const ONBOARD_KEY = "ce_onboarded_v4";
+
+// Exhibition bouts — the post-daily survival run. The day's champion keeps
+// defending against fresh challengers; every bout is a real (append-only) vote
+// that moves Elo at a QUARTER of the player's normal weight, and the day's cap
+// keeps late fatigue votes from piling noise into the ratings. The scarce
+// daily ritual (streak, leaderboard unlock, share card) hangs off the 3 arena
+// picks only. KEEP IN SYNC WITH supabase/cast_vote.sql.
+const EXHIBITION_WEIGHT = 0.25;
+const EXHIBITION_CAP = 10;
 
 function Logo({ c, cls }: { c: Company; cls: string }) {
   return (
@@ -171,6 +180,22 @@ export default function App() {
   // The leaderboard is gated behind completing today's 3 picks. Persisted via
   // the profile's last_active_date, so it stays unlocked on refresh for the day.
   const [doneToday, setDoneToday] = useState(false);
+  // Exhibition mode — the optional survival run after the daily 3. The run's
+  // champion defends until dethroned, retired, or the daily bout cap.
+  const [exhibition, setExhibition] = useState(false);
+  // Bouts played today (hydrated from the server so a reload can't reset the
+  // cap). The server enforces the cap authoritatively.
+  const [exhibitionUsed, setExhibitionUsed] = useState(0);
+  // The current run's champion — null right after a reload wiped the day's
+  // picks, in which case the first exhibition bout crowns one.
+  const [runChamp, setRunChamp] = useState<number | null>(null);
+  const [runDefenses, setRunDefenses] = useState(0); // bouts this champion has won
+  const [runOver, setRunOver] = useState<null | {
+    outcome: "dethroned" | "undefeated" | "retired";
+    champId: number;
+    defenses: number;
+    conquerorId?: number;
+  }>(null);
   const [profileId, setProfileId] = useState<number | null>(null);
   // A company being "peeked" from the vote flow — a read-only dossier shown in a
   // bottom sheet so you can learn about a company you don't recognise WITHOUT
@@ -232,6 +257,10 @@ export default function App() {
     votesLifetimeCount(userId).then((n) => {
       if (!cancelled) setLifetimeVotes(n);
     });
+    // Exhibition bouts already played today, so the cap survives a reload.
+    exhibitionTodayCount(userId).then((n) => {
+      if (!cancelled) setExhibitionUsed(n);
+    });
     return () => {
       cancelled = true;
     };
@@ -241,19 +270,8 @@ export default function App() {
   // after completing the day), surface the daily-limit popup. Never fires the
   // moment they finish their 3rd pick, since that routes to the "done" view.
   useEffect(() => {
-    if (doneToday && view === "vote") setShowLimitModal(true);
-  }, [doneToday, view]);
-
-  // Picking a winner reveals the "Lock it in" button below the tall vote cards —
-  // scroll it into view so the bottom nav can never hide it on a small screen.
-  const isDecided = decided !== null;
-  useEffect(() => {
-    if (isDecided && view === "vote") {
-      requestAnimationFrame(() =>
-        document.querySelector(".nextbtn")?.scrollIntoView({ behavior: "smooth", block: "center" }),
-      );
-    }
-  }, [isDecided, view]);
+    if (doneToday && view === "vote" && !exhibition) setShowLimitModal(true);
+  }, [doneToday, view, exhibition]);
 
   // On advancing to rounds 2 and 3, glide the just-earned breadcrumb to the top
   // of the viewport, so the user actually SEES "✓ you backed X" and then the next
@@ -305,7 +323,15 @@ export default function App() {
   // warm-up floor, so matchups are fair and recognizable rather than
   // famous-vs-obscure (which just trains brand-recognition voting). Widens the
   // net step by step if a band is too thin, and always returns something.
-  function pickChallenger(list: Company[], championId: number, qk: QKey, exclude: number[]): number {
+  // minFloor defaults to the warm-up floor; exhibition bouts pass 1 so the
+  // lower-stakes run can surface deeper cuts (discovery signal).
+  function pickChallenger(
+    list: Company[],
+    championId: number,
+    qk: QKey,
+    exclude: number[],
+    minFloor = warmupFloor,
+  ): number {
     const champ = list.find((c) => c.id === championId);
     const champP = champ?.prominence ?? 2;
     const excl = new Set([championId, ...exclude]);
@@ -317,9 +343,9 @@ export default function App() {
           (c.prominence ?? 2) >= floor &&
           (!peerBand || Math.abs((c.prominence ?? 2) - champP) <= 1),
       );
-    let pool = eligible(warmupFloor, true); // peers, above the warm-up floor
-    if (pool.length < 3) pool = eligible(warmupFloor, false); // drop the peer band
-    if (pool.length < 3) pool = eligible(1, false); // drop the warm-up floor
+    let pool = eligible(minFloor, true); // peers, above the floor
+    if (pool.length < 3) pool = eligible(minFloor, false); // drop the peer band
+    if (pool.length < 3) pool = eligible(1, false); // drop the floor entirely
     if (pool.length === 0) pool = list.filter((c) => isActive(c) && c.id !== championId);
     // Among the pool, prefer a same-category/region peer for a real matchup.
     const themed = pool.filter((c) => c.category === champ?.category || c.region === champ?.region);
@@ -342,10 +368,16 @@ export default function App() {
   }
 
   // Reshuffle without casting a vote: keep one company, bring a fresh challenger.
-  // Used by "too close to call" (keep the reigning/left card) and "not familiar"
+  // Used by "too close to call" (keep the reigning/left card) and "don't know them"
   // (keep the other card). Never mixes committed matchups.
   function reshuffle(keepId: number, next = companies) {
-    const challengerId = pickChallenger(next, keepId, voteQ, [a, b, ...seenToday]);
+    const challengerId = pickChallenger(
+      next,
+      keepId,
+      voteQ,
+      [a, b, ...seenToday],
+      exhibition ? 1 : warmupFloor,
+    );
     setSeenToday((s) => [...s, challengerId]);
     setPair([keepId, challengerId]);
     setDecided(null);
@@ -367,7 +399,8 @@ export default function App() {
     const qk = voteQ;
     const winner = side === "A" ? A : B;
     const loser = side === "A" ? B : A;
-    const { dw, dl } = eloDeltas(winner, loser, qk, tier.mult);
+    // Exhibition previews show the honest quarter-weight move.
+    const { dw, dl } = eloDeltas(winner, loser, qk, tier.mult * (exhibition ? EXHIBITION_WEIGHT : 1));
     const eloWinner = winner.ratings[qk].elo + dw;
     const eloLoser = loser.ratings[qk].elo + dl;
     setDecided({
@@ -466,6 +499,165 @@ export default function App() {
     reshuffle(company.id === a ? b : a);
   }
 
+  // ---- Exhibition bouts: the post-daily survival run ----------------------
+  // The day's champion keeps defending, king-of-the-hill style, until it's
+  // dethroned, retires (player walks away), or the daily cap is hit. Every
+  // bout is a real ¼-weight vote; challengers come from deeper in the arena
+  // (floor 1), so surplus enthusiasm becomes long-tail discovery signal.
+
+  // Start (or restart) a run. Carries the day's champion when we have it; on a
+  // reload that wiped the day's picks, bout 1 crowns a champion instead.
+  function startExhibition(champId: number | null = todaysPicks[todaysPicks.length - 1]?.winId ?? null) {
+    setRunOver(null);
+    setRunDefenses(0);
+    setRunChamp(champId);
+    if (champId != null) {
+      nextBout(champId);
+    } else {
+      // No champion survived the reload — seat a fresh anchor on the left;
+      // whoever wins bout 1 is crowned (runChamp stays null until then).
+      const anchors = activeCompanies.filter((c) => !seenToday.includes(c.id));
+      const anchor = (anchors.length ? anchors : activeCompanies)[
+        Math.floor(Math.random() * (anchors.length || activeCompanies.length))
+      ];
+      nextBout(anchor.id);
+    }
+    setExhibition(true);
+    setView("vote");
+  }
+
+  // Fresh challenger for the run's current king. Floor 1 → deep cuts welcome.
+  function nextBout(champId: number, next = companies) {
+    const challengerId = pickChallenger(next, champId, voteQ, [a, b, ...seenToday], 1);
+    setSeenToday((s) => [...s, challengerId]);
+    setPair([champId, challengerId]);
+    setDecided(null);
+  }
+
+  // Lock in an exhibition bout. Mirrors commitPick, but at ¼ weight, with the
+  // run's survival bookkeeping instead of the daily pickIndex/streak logic.
+  function commitExhibition() {
+    if (!decided) return;
+    const qk = voteQ;
+    const side = decided.winSide;
+    const winnerId = side === "A" ? a : b;
+    const loserId = side === "A" ? b : a;
+    const next = companies.map((c) => ({ ...c, ratings: { ...c.ratings } }));
+    const nextById = new Map(next.map((c) => [c.id, c]));
+    const winner = nextById.get(winnerId)!;
+    const loser = nextById.get(loserId)!;
+
+    // Optimistic quarter-weight move; reconciled to the server's values below.
+    applyElo(winner, loser, qk, tier.mult * EXHIBITION_WEIGHT);
+    setCompanies(next);
+    setDecided(null);
+    const used = exhibitionUsed + 1;
+    setExhibitionUsed(used);
+
+    if (userId) {
+      void castVote({ companyA: a, companyB: b, dimension: qk, winner: winnerId, kind: "exhibition" }).then(
+        (outcome) => {
+          if (!outcome.ok) {
+            if (outcome.limitReached) {
+              // A second tab (or drifted state) already used the cap — close
+              // out the run; the optimistic Elo self-heals on reload.
+              setExhibitionUsed(EXHIBITION_CAP);
+              setRunOver((r) => r ?? { outcome: "retired", champId: winnerId, defenses: runDefenses });
+            } else {
+              console.error("cast_vote (exhibition) failed:", outcome.error);
+            }
+            return;
+          }
+          const { winner: wId, loser: lId, winnerElo, loserElo } = outcome.result;
+          setCompanies((prev) =>
+            prev.map((c) =>
+              c.id === wId
+                ? { ...c, ratings: { ...c.ratings, [qk]: { ...c.ratings[qk], elo: winnerElo } } }
+                : c.id === lId
+                  ? { ...c, ratings: { ...c.ratings, [qk]: { ...c.ratings[qk], elo: loserElo } } }
+                  : c,
+            ),
+          );
+        },
+      );
+    }
+
+    if (runChamp == null) {
+      // Crowning bout: the winner becomes the run's champion with 1 win.
+      setRunChamp(winnerId);
+      setRunDefenses(1);
+      if (used >= EXHIBITION_CAP) {
+        setRunOver({ outcome: "undefeated", champId: winnerId, defenses: 1 });
+      } else {
+        nextBout(winnerId, next);
+      }
+    } else if (winnerId === runChamp) {
+      const defenses = runDefenses + 1;
+      setRunDefenses(defenses);
+      if (used >= EXHIBITION_CAP) {
+        setRunOver({ outcome: "undefeated", champId: runChamp, defenses });
+      } else {
+        nextBout(runChamp, next);
+      }
+    } else {
+      // The champion falls — the run is over. (The vote for the challenger is
+      // real signal either way; the loss is the run's natural session end.)
+      setRunOver({ outcome: "dethroned", champId: runChamp, defenses: runDefenses, conquerorId: winnerId });
+    }
+  }
+
+  // Walk away mid-run: the champion retires with its wins.
+  function endRun() {
+    if (runChamp == null) {
+      // Nothing crowned yet — just leave exhibition quietly.
+      setExhibition(false);
+      setView("done");
+      return;
+    }
+    setRunOver({ outcome: "retired", champId: runChamp, defenses: runDefenses });
+  }
+
+  // From the run-over card: keep playing with the conqueror as the new king.
+  function continueRun(newChampId: number) {
+    setRunOver(null);
+    setRunChamp(newChampId);
+    setRunDefenses(1); // it just won its crowning bout
+    nextBout(newChampId);
+  }
+
+  function exitExhibition() {
+    setExhibition(false);
+    setRunOver(null);
+    setView("done");
+  }
+
+  // Share the run's story — same native-share / clipboard pattern as shareCalls.
+  function shareExhibition() {
+    if (!runOver) return;
+    const champName = byId.get(runOver.champId)?.name ?? "My champion";
+    const conqueror = runOver.conquerorId != null ? byId.get(runOver.conquerorId)?.name : null;
+    const text =
+      runOver.outcome === "dethroned"
+        ? `⚔️ Exhibition run on Coliseo: ${champName} outlasted ${runOver.defenses} challenger${runOver.defenses === 1 ? "" : "s"} before falling to ${conqueror}.`
+        : runOver.outcome === "undefeated"
+          ? `👑 ${champName} went ${runOver.defenses}-0 in Coliseo exhibition bouts — retired undefeated.`
+          : `🏁 ${champName} retired with ${runOver.defenses} exhibition win${runOver.defenses === 1 ? "" : "s"} on Coliseo.`;
+    const url = "https://convictionelo.vercel.app";
+    if (typeof navigator !== "undefined" && navigator.share) {
+      void navigator.share({ title: "Coliseo", text, url }).catch(() => {});
+      return;
+    }
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      void navigator.clipboard.writeText(`${text}\n${url}`).then(
+        () => {
+          setShareMsg("Copied — paste it anywhere");
+          setTimeout(() => setShareMsg(null), 2400);
+        },
+        () => setShareMsg("Couldn’t copy automatically"),
+      );
+    }
+  }
+
   function simDay() {
     // Missed day (set unfinished) decays one tier; otherwise a clean new day.
     if (pickIndex < 3) {
@@ -478,6 +670,11 @@ export default function App() {
     setPickIndex(0);
     setTodaysPicks([]);
     setDoneToday(false); // new day — re-lock the tables until 3 picks are done
+    setExhibition(false); // exhibition resets with the day
+    setExhibitionUsed(0);
+    setRunChamp(null);
+    setRunDefenses(0);
+    setRunOver(null);
     newMatch(); // fresh gauntlet: two comparable companies on the day's question
     setView("vote");
   }
@@ -844,32 +1041,58 @@ export default function App() {
             ⓘ <span>learn more</span>
           </button>
         </div>
-        <div className="f-score">
-          {decided ? (
-            <>
-              <div className="elo">
-                {QUESTIONS[voteQ].emoji} {previewElo}
-              </div>
-              <div className={`delta ${delta >= 0 ? "up" : "down"}`}>
-                {delta >= 0 ? "▲ +" : "▼ "}
-                {delta}
-              </div>
-            </>
-          ) : (
-            <button
-              type="button"
-              className="dunno-tag"
-              title={`I am not familiar with ${c.name}`}
-              aria-label={`I am not familiar with ${c.name}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                markUnknown(c);
-              }}
-            >
-              🤷 <span>not familiar</span>
-            </button>
-          )}
-        </div>
+        {decided && (
+          <div className="f-score">
+            <div className="elo">
+              {QUESTIONS[voteQ].emoji} {previewElo}
+            </div>
+            <div className={`delta ${delta >= 0 ? "up" : "down"}`}>
+              {delta >= 0 ? "▲ +" : "▼ "}
+              {delta}
+            </div>
+          </div>
+        )}
+        {/* One plain-language escape hatch per card (feeds the obscurity
+            signal), replacing the old "🤷 not familiar" corner tag that beta
+            testers didn't understand. Hidden once a side is selected, and on
+            the reigning exhibition champion (the player's own pick). */}
+        {!decided && !(exhibition && c.id === runChamp) && (
+          <button
+            type="button"
+            className="swap-link"
+            title={`I don't know ${c.name} — swap in another company`}
+            onClick={(e) => {
+              e.stopPropagation();
+              markUnknown(c);
+            }}
+          >
+            🤷 Don&apos;t know {c.name}? <span>Swap them out</span>
+          </button>
+        )}
+        {/* The advance action lives INSIDE the card the user just picked — the
+            eye is already there, so mobile users no longer hunt for a separate
+            "Lock it in" button below the fold. */}
+        {selected && (
+          <button
+            type="button"
+            className="advance-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (exhibition) commitExhibition();
+              else commitPick();
+            }}
+          >
+            {exhibition
+              ? runChamp == null
+                ? `✓ Crown ${c.name} — start the run →`
+                : c.id === runChamp
+                  ? "✓ Defend the crown — next bout →"
+                  : "⚔️ Dethrone the champion"
+              : pickIndex >= 2
+                ? "Lock it in — see today’s results →"
+                : `✓ Advance to Round ${pickIndex + 2} →`}
+          </button>
+        )}
       </div>
     );
   };
@@ -988,20 +1211,31 @@ export default function App() {
       {/* VOTE — locked once today's 3 picks are used (see doneToday). The
           matchup is only rendered when there are picks left, so a finished user
           structurally cannot cast a 4th; the popup explains why. */}
-      {view === "vote" && doneToday && (
+      {view === "vote" && doneToday && !exhibition && (
         <section className="done-card">
           <div className="big">✅</div>
           <h2>That&apos;s your 3 for today</h2>
           <p>
-            You&apos;ve played today&apos;s three rounds. Come back tomorrow for a fresh question and to
-            keep your streak alive.
+            Today&apos;s three arena picks are in — your streak is safe, and a fresh question lands
+            tomorrow.
+            {exhibitionUsed < EXHIBITION_CAP &&
+              " Still got takes? Exhibition bouts count at ¼ weight and don't touch your daily 3."}
           </p>
-          <button className="nextbtn" onClick={() => setView("board")} style={{ marginTop: 10 }}>
+          {exhibitionUsed < EXHIBITION_CAP && (
+            <button className="nextbtn" onClick={() => startExhibition()} style={{ marginTop: 10 }}>
+              ⚔️ Keep playing — exhibition bouts →
+            </button>
+          )}
+          <button
+            className={exhibitionUsed < EXHIBITION_CAP ? "sharebtn" : "nextbtn"}
+            onClick={() => setView("board")}
+            style={{ marginTop: 10 }}
+          >
             🏆 See the leaderboard →
           </button>
         </section>
       )}
-      {view === "vote" && !doneToday && (
+      {view === "vote" && (!doneToday || (exhibition && !runOver)) && (
         <section className="run">
           {/* Trail: each completed round collapses into a breadcrumb, and the
               live matchup renders below it — so the day reads as one continuous
@@ -1026,9 +1260,17 @@ export default function App() {
           <div className="step" ref={activeStepRef}>
           <div className="qbar">
             <div className="k">
-              Pick {Math.min(pickIndex, 2) + 1} of 3 · {QUESTIONS[voteQ].label}
+              {exhibition
+                ? `Exhibition · ¼ weight · ${Math.max(0, EXHIBITION_CAP - exhibitionUsed)} bout${EXHIBITION_CAP - exhibitionUsed === 1 ? "" : "s"} left today`
+                : `Pick ${Math.min(pickIndex, 2) + 1} of 3 · ${QUESTIONS[voteQ].label}`}
             </div>
             <h1 dangerouslySetInnerHTML={{ __html: QUESTIONS[voteQ].q }} />
+            {exhibition && runChamp != null && (
+              <p className="exh-status">
+                👑 <b>{byId.get(runChamp)?.name}</b> has held the crown for {runDefenses} bout
+                {runDefenses === 1 ? "" : "s"}
+              </p>
+            )}
           </div>
           <div className="arena">
             <Fighter c={A} side="A" />
@@ -1040,6 +1282,11 @@ export default function App() {
           {!decided && (
             <button className="skip" onClick={() => reshuffle(a)}>
               🤔 Too close to call — swap in a new challenger
+            </button>
+          )}
+          {exhibition && !decided && (
+            <button className="skip" onClick={endRun}>
+              🏁 End the run{runChamp != null ? ` — ${byId.get(runChamp)?.name} retires` : ""}
             </button>
           )}
           {decided && (
@@ -1069,11 +1316,8 @@ export default function App() {
                   );
                 })()}
               </div>
-              <button className="nextbtn" onClick={commitPick}>
-                {pickIndex >= 2 ? "Lock it in — see results →" : "Lock it in — next pick →"}
-              </button>
               <button className="skip" onClick={() => setDecided(null)}>
-                ↩ tap a card to switch, or clear selection
+                ↩ tap the other card to switch, or clear your selection
               </button>
             </>
           )}
@@ -1085,6 +1329,55 @@ export default function App() {
           </div>
         </section>
       )}
+
+      {/* EXHIBITION RUN OVER — the run's story: dethroned (the natural session
+          end), retired undefeated at the cap, or walked away. */}
+      {view === "vote" &&
+        exhibition &&
+        runOver &&
+        (() => {
+          const champ = byId.get(runOver.champId);
+          const conqueror = runOver.conquerorId != null ? byId.get(runOver.conquerorId) : undefined;
+          const n = runOver.defenses;
+          return (
+            <section className="done-card">
+              <div className="big">
+                {runOver.outcome === "dethroned" ? "⚔️" : runOver.outcome === "undefeated" ? "👑" : "🏁"}
+              </div>
+              <h2>
+                {runOver.outcome === "dethroned"
+                  ? `${conqueror?.name ?? "A challenger"} takes the crown`
+                  : runOver.outcome === "undefeated"
+                    ? `${champ?.name} retires undefeated`
+                    : `${champ?.name} retires`}
+              </h2>
+              <p>
+                {runOver.outcome === "dethroned"
+                  ? n === 0
+                    ? `${champ?.name} fell in the opening bout. Brutal arena out there.`
+                    : `${champ?.name} outlasted ${n} challenger${n === 1 ? "" : "s"} before falling.`
+                  : runOver.outcome === "undefeated"
+                    ? `${n} straight win${n === 1 ? "" : "s"} — that's today's exhibition cap. A fresh run unlocks tomorrow.`
+                    : `${n} exhibition win${n === 1 ? "" : "s"} banked.`}{" "}
+                Every bout moved the ratings at ¼ weight.
+              </p>
+              <button className="nextbtn" onClick={shareExhibition} style={{ marginTop: 10 }}>
+                ↗ Share the run
+              </button>
+              {runOver.outcome === "dethroned" && exhibitionUsed < EXHIBITION_CAP && conqueror && (
+                <button className="sharebtn" onClick={() => continueRun(conqueror.id)}>
+                  ⚔️ New run — {conqueror.name} defends the crown →
+                </button>
+              )}
+              <button className="sharebtn" onClick={exitExhibition}>
+                ← Back to today&apos;s results
+              </button>
+              <p className="done-note" aria-live="polite">
+                {shareMsg ?? ""}
+              </p>
+            </section>
+          );
+        })()}
 
       {/* DONE — a champion-centric card built as a screenshot-ready share object
           (the visual blueprint for the future dynamic OG / social image). The
@@ -1160,6 +1453,11 @@ export default function App() {
               <button className="nextbtn" onClick={shareCalls} style={{ marginTop: 16 }}>
                 ↗ Share my calls
               </button>
+              {exhibitionUsed < EXHIBITION_CAP && (
+                <button className="sharebtn exh-cta" onClick={() => startExhibition(champId ?? null)}>
+                  ⚔️ {champName ? `${champName} still stands — ` : ""}enter the exhibition →
+                </button>
+              )}
               <button className="sharebtn" onClick={() => setView("board")}>
                 🏆 See the leaderboard →
               </button>
@@ -1638,11 +1936,25 @@ export default function App() {
               That&apos;s your <span>3 for today</span>
             </h2>
             <p className="onboard-sub">
-              Three rounds a day, then a fresh question tomorrow — scarcity is what makes each pick
-              count (and keeps your streak alive).
+              Three arena rounds a day, then a fresh question tomorrow — scarcity is what makes each
+              pick count (and keeps your streak alive).
+              {exhibitionUsed < EXHIBITION_CAP &&
+                " Still got takes? Exhibition bouts count at ¼ weight and never touch your daily 3."}
             </p>
+            {exhibitionUsed < EXHIBITION_CAP && (
+              <button
+                className="nextbtn onboard-cta"
+                onClick={() => {
+                  setShowLimitModal(false);
+                  startExhibition();
+                }}
+              >
+                ⚔️ Keep playing — exhibition bouts →
+              </button>
+            )}
             <button
-              className="nextbtn onboard-cta"
+              className={exhibitionUsed < EXHIBITION_CAP ? "sharebtn" : "nextbtn onboard-cta"}
+              style={exhibitionUsed < EXHIBITION_CAP ? { margin: "10px auto 0" } : undefined}
               onClick={() => {
                 setShowLimitModal(false);
                 setView("board");
@@ -1702,6 +2014,13 @@ export default function App() {
                 <span>
                   <b>Stronger voters carry more weight.</b> A longer daily streak lifts your credibility
                   tier, so your picks nudge ratings a little harder.
+                </span>
+              </li>
+              <li>
+                <span className="onboard-ic">⚔️</span>
+                <span>
+                  <b>Exhibition bouts count at ¼ weight.</b> Your daily 3 arena picks carry your full
+                  weight; the optional exhibition run after them moves ratings gently.
                 </span>
               </li>
               <li>

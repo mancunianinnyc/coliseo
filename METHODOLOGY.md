@@ -28,11 +28,23 @@ completely separate.
 
 - Each **day asks one question**, rotating through Conviction → Momentum → Talent so
   everyone plays the same question on the same day.
-- You get **three rounds a day**, played "king of the hill": you pick a winner,
-  that company **stays on** and faces a fresh challenger, and so on. Three votes,
-  then you're done until tomorrow.
+- You get **three arena rounds a day**, played "king of the hill": you pick a
+  winner, that company **stays on** and faces a fresh challenger, and so on.
+  Three full-weight votes, then the daily set is done.
 - The three-a-day scarcity is deliberate — it makes each vote matter and gives a
   reason to come back, instead of binge-and-churn.
+
+### Exhibition bouts (after the daily 3)
+
+Once your three arena picks are in, you can keep playing **exhibition bouts**:
+your day's champion keeps defending against fresh challengers until it's
+dethroned, you walk away, or you hit the daily cap (10 bouts). Exhibition votes
+are real votes — recorded permanently and counted in the ratings — but at **¼ of
+your normal vote weight**, so the scarce daily 3 stay the votes that really move
+the table. Exhibition matchmaking also reaches deeper into the arena, which
+makes it a discovery surface: surplus enthusiasm surfaces lesser-known
+companies. Streaks, the leaderboard unlock, and the daily share card all hang
+off the arena picks only.
 
 ## The rating: Elo
 
@@ -67,6 +79,10 @@ move ratings:
 Committed, consistent voters nudge the rankings a little harder than drive-by
 votes — but no one can dominate, and the effect is modest by design.
 
+**Exhibition bouts** apply a further **×0.25** on top of your tier weight (an
+arena vote from a Rookie moves ratings four times as much as their exhibition
+vote).
+
 ## Fair matchups (so it's conviction, not brand-recognition)
 
 If we paired a household name against a company nobody's heard of, people would
@@ -82,8 +98,8 @@ heard of it.
 Beyond the rating itself, ConvictionELO captures:
 
 - **Conviction** — who you back after seeing the matchup (the votes → the Elo).
-- **Obscurity** — companies you mark "not familiar" (never touches Elo; it just
-  tells us which companies aren't well known yet).
+- **Obscurity** — companies you swap out because you don't know them (never
+  touches Elo; it just tells us which companies aren't well known yet).
 
 Marking a company unfamiliar is useful signal, never a penalty.
 

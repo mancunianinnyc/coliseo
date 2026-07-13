@@ -89,6 +89,11 @@ body {
 .qbar .k { font-size: 12px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; font-weight: 800; }
 .qbar h1 { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: clamp(23px, 5.6vw, 32px); line-height: 1.12; margin-top: 8px; letter-spacing: -.4px; text-wrap: balance; }
 .qbar h1 span { background: linear-gradient(90deg, var(--coral), var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+/* Exhibition run status ("👑 X has held the crown for N bouts") under the question. */
+.exh-status { margin-top: 8px; font-size: 13px; color: var(--muted); font-weight: 700; }
+.exh-status b { color: var(--ink); }
+/* Exhibition entry CTA on the done card — teal-tinted to read as the fun path. */
+.exh-cta { border-color: var(--teal); color: var(--teal2); font-weight: 800; }
 
 /* Vote arena — side-by-side vertical cards on wider screens; the mobile media
    query below restacks them into compact horizontal cards. */
@@ -108,11 +113,16 @@ body {
 .fighter .elo { font-size: 14px; font-weight: 800; color: var(--sky); }
 .delta { font-size: 12.5px; font-weight: 800; }
 .delta.up { color: var(--mint); } .delta.down { color: var(--red); }
-/* Deliberately recessive — a subtle text link, not a button, so tapping the
-   card itself stays the clear primary action. */
-.dunno-tag { background: none; border: none; color: var(--muted); font-size: 11px; font-weight: 600; padding: 5px 2px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; opacity: .7; white-space: nowrap; }
-.dunno-tag span { text-decoration: underline; text-underline-offset: 2px; }
-.dunno-tag:hover { opacity: 1; color: var(--ink); }
+/* "Don't know them? Swap them out" — deliberately recessive text link at the
+   foot of each card, so tapping the card itself stays the clear primary action. */
+.swap-link { width: 100%; background: none; border: none; color: var(--muted); font-size: 11.5px; font-weight: 600; padding: 4px 2px 0; cursor: pointer; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.swap-link span { text-decoration: underline; text-underline-offset: 2px; }
+.swap-link:hover { opacity: 1; color: var(--ink); }
+/* The advance action, grown by the selected card itself — full-width, green
+   (mint), thumb-reachable. Replaces the old standalone "Lock it in" button. */
+.advance-btn { width: 100%; margin-top: 4px; background: linear-gradient(135deg, var(--mint), var(--teal)); color: #fff; border: none; font-weight: 800; font-size: 15px; padding: 13px 14px; border-radius: 14px; cursor: pointer; box-shadow: 0 8px 20px rgba(34, 201, 160, .35); animation: advance-in .18s ease-out; }
+.advance-btn:active { transform: translateY(1px); }
+@keyframes advance-in { from { opacity: 0; transform: translateY(6px); } }
 .vs { display: grid; place-items: center; }
 .vs .orb { width: 44px; height: 44px; border-radius: 50%; background: var(--card); border: 1.5px solid var(--line); box-shadow: var(--shadow-sm); display: grid; place-items: center; font-weight: 900; font-style: italic; color: var(--muted); font-size: 15px; z-index: 1; }
 
@@ -336,8 +346,12 @@ nav.bottom { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display
    phones — both companies stay visible, with big tap targets. */
 @media (max-width: 560px) {
   .arena { display: flex; flex-direction: column; gap: 0; }
-  .fighter { flex-direction: row; align-items: center; text-align: left; gap: 16px; padding: 20px 18px; border-radius: 20px; min-height: 104px; }
+  .fighter { flex-direction: row; flex-wrap: wrap; align-items: center; text-align: left; gap: 16px; padding: 20px 18px; border-radius: 20px; min-height: 104px; }
   .fighter:hover { transform: none; }
+  /* The swap link and the in-card advance button break onto their own
+     full-width row beneath the logo/info/score row. */
+  .swap-link { flex-basis: 100%; margin-top: -8px; text-align: center; }
+  .advance-btn { flex-basis: 100%; margin-top: 0; }
   .fighter .emoji { width: 68px; height: 68px; border-radius: 19px; font-size: 32px; }
   .fighter .emoji img { padding: 12px; }
   .f-info { flex: 1; align-items: flex-start; text-align: left; gap: 4px; }
@@ -397,9 +411,9 @@ nav.bottom { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display
 .tagline { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .1px; line-height: 1.2; text-wrap: balance; }
 
 /* ---------- "Learn more" peek link on a vote card ----------
-   Sibling in spirit to .dunno-tag, but teal to read as an actionable link
-   (discovery), where dunno is a recessive muted signal. Both stay clearly
-   secondary to the card tap (which casts the vote). */
+   Sibling in spirit to .swap-link, but teal to read as an actionable link
+   (discovery), where the swap link is a recessive muted signal. Both stay
+   clearly secondary to the card tap (which casts the vote). */
 .peek-tag { background: none; border: none; color: var(--teal2); font-size: 11px; font-weight: 700; padding: 4px 2px; margin-top: 2px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; opacity: .85; white-space: nowrap; }
 .peek-tag span { text-decoration: underline; text-underline-offset: 2px; }
 .peek-tag:hover { opacity: 1; }

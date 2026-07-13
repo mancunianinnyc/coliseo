@@ -33,6 +33,8 @@ gating the first release.
 - **Eligibility & lifecycle** — only private, venture-backed, alive companies compete; those that IPO / get acquired / shut down *graduate* into an archived hall of fame (excluded from the rankings, profile preserved).
 - **Live in production** — deployed and playable, with a preview/staging environment for iterating safely before each release.
 - **First-run onboarding** — a one-time, dismissible pop-up on a visitor's first load that explains the whole loop in a few seconds (pick a winner; 3 picks a day, one each for Conviction / Momentum / Talent; every vote moves a live rating; finish the day to unlock the leaderboard).
+- **In-card advance (mobile-native confirm)** — selecting a company grows a green "Advance to Round N →" button inside the chosen card itself, replacing the standalone "Lock it in" button beta testers missed; the unused "not familiar" corner tag became a plain-language "Don't know them? Swap them out" link.
+- **Exhibition bouts (post-daily survival run)** — after the daily 3, the day's champion keeps defending against fresh, deeper-cut challengers until dethroned, retired, or the 10-bout daily cap. Real append-only votes at **¼ vote weight**, so the scarce daily ritual (streak, leaderboard unlock, share card) stays tied to the arena picks; each run ends in a shareable story ("X outlasted N challengers").
 
 ## 🔜 Next — a credible MVP (what a small group needs)
 - **Data-quality pass** — verify the hand-seeded companies (founders, funding, HQ, logos, dead links) so the rankings start from trustworthy facts.
