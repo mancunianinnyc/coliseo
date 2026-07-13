@@ -1348,12 +1348,19 @@ export default function App() {
       )}
       <div className={"wrap" + (view === "board" ? " wrap-wide" : "")}>
         <header className="top">
-        <div className="brand">
+        {/* The brand lockup is the home button — tap it anywhere to get back
+            to today's matchups. */}
+        <button
+          type="button"
+          className="brand brand-btn"
+          aria-label="Coliseo — back to today's matchups"
+          onClick={() => setView("vote")}
+        >
           <div className="logo">
             <img className="brand-mark" src="/coliseo-mark.svg" alt="" /> Coliseo
           </div>
           <div className="tagline">Head-to-Head Startup Ranking &amp; Discovery</div>
-        </div>
+        </button>
         <div className="cred">
           <div className="tier" style={{ background: tier.color }}>
             {tier.name}
