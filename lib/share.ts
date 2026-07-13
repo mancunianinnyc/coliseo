@@ -1,4 +1,4 @@
-import type { QKey } from "./types";
+﻿import type { QKey } from "./types";
 
 // Canonical public origin for share links + OG image URLs. The old
 // convictionelo.vercel.app URL keeps serving (beta links live on); this is
@@ -10,7 +10,7 @@ export const SITE_URL = "https://coliseoelo.com";
 // Company IDs only — names/logos are looked up server-side, so links stay
 // short and can't carry arbitrary text.
 export interface ShareParams {
-  t: "d" | "r"; // d = daily gauntlet result, r = exhibition run
+  t: "d" | "r" | "c"; // d = daily gauntlet, r = exhibition run, c = company profile (OG only)
   c: number; // champion company id
   k: QKey; // the day's dimension
   s: number; // streak (daily only; 0 = omit)
@@ -28,6 +28,28 @@ const qs = (pairs: Record<string, string | number | null | undefined>) =>
     .join("&");
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+// ---- Company profile slugs (/c/[slug]) ----
+// Shape: "monzo-51" — the trailing id is canonical (rename-proof, no DB slug
+// column needed); the name part is cosmetic + SEO. A wrong/stale name part
+// 301s to the canonical slug.
+const kebab = (name: string) =>
+  name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "") // strip accents (post-NFKD combining marks)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60) || "co";
+
+export const companySlug = (c: { id: number; name: string }) => `${kebab(c.name)}-${c.id}`;
+
+// Extract the canonical id from a profile slug ("monzo-51" → 51; bare "51" works too).
+export function slugId(slug: string): number | null {
+  const m = /(?:^|-)(\d+)$/.exec(slug);
+  const id = m ? Number(m[1]) : NaN;
+  return Number.isFinite(id) && id > 0 ? id : null;
+}
 
 export function buildDailyShareUrl(input: {
   champId: number;
@@ -87,7 +109,8 @@ export function parseShareParams(
   const one = (k: string) => (Array.isArray(sp[k]) ? sp[k]![0] : (sp[k] as string | undefined));
   const c = Number(one("c"));
   if (!Number.isFinite(c) || c <= 0) return null;
-  const t = one("t") === "r" ? "r" : "d";
+  const tRaw = one("t");
+  const t = tRaw === "r" ? "r" : tRaw === "c" ? "c" : "d";
   const kRaw = one("k");
   const k: QKey = kRaw === "V" || kRaw === "G" || kRaw === "D" ? kRaw : "V";
   const outRaw = one("out");

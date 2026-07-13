@@ -7,6 +7,9 @@ export interface ShareCompany {
   name: string;
   logoUrl: string | null; // absolute URL, ready for <img src>
   gradient: string; // fallback tile when there's no logo
+  blurb: string | null; // one-liner (used by the t=c profile card)
+  category: string;
+  region: string;
 }
 
 const FALLBACK_GRADIENT = "linear-gradient(135deg,#0eb6a6,#37b6ff)";
@@ -26,7 +29,8 @@ export async function loadShareCompanies(ids: number[]): Promise<Map<number, Sha
   if (!supabase || unique.length === 0) return map;
   const { data, error } = await supabase
     .from("companies")
-    .select("id, name, logo_url, gradient")
+    .select("id, name, logo_url, gradient, blurb, category, region")
+    .eq("status", "live")
     .in("id", unique);
   if (error) {
     console.error("share company lookup failed:", error.message);
@@ -38,6 +42,9 @@ export async function loadShareCompanies(ids: number[]): Promise<Map<number, Sha
       name: row.name,
       logoUrl: absoluteLogo(row.logo_url),
       gradient: row.gradient ?? FALLBACK_GRADIENT,
+      blurb: row.blurb ?? null,
+      category: row.category,
+      region: row.region,
     });
   }
   return map;

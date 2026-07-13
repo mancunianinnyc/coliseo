@@ -11,7 +11,7 @@ import { castVote, votesTodayCount, votesLifetimeCount, exhibitionTodayCount } f
 import { submitCompany } from "@/lib/submitCompany";
 import { flagUnknown } from "@/lib/unknowns";
 import { track, installErrorTracking } from "@/lib/track";
-import { buildDailyShareUrl, buildRunShareUrl, SITE_URL } from "@/lib/share";
+import { buildDailyShareUrl, buildRunShareUrl, companySlug, SITE_URL } from "@/lib/share";
 import {
   applyElo,
   composite,
@@ -1053,6 +1053,11 @@ export default function App() {
               ◆ Crunchbase
             </a>
           )}
+          {/* The public, crawlable permalink for this company — shareable
+              even for companies outside the Arena500. */}
+          <a href={`/c/${companySlug(c)}`} target="_blank" rel="noreferrer" className="linkbtn">
+            📄 Full profile
+          </a>
         </div>
 
         <button

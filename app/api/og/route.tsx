@@ -106,23 +106,27 @@ export async function GET(req: NextRequest) {
 
   const kicker = !p || !champ
     ? "HEAD-TO-HEAD STARTUP RANKING"
-    : p.t === "r"
-      ? `EXHIBITION RUN · ${q.label.toUpperCase()} · ${dateStr}`
-      : `TODAY'S GAUNTLET · ${q.label.toUpperCase()} · ${dateStr}`;
+    : p.t === "c"
+      ? `COMPANY PROFILE · ${champ.category.toUpperCase()} · ${champ.region.toUpperCase()}`
+      : p.t === "r"
+        ? `EXHIBITION RUN · ${q.label.toUpperCase()} · ${dateStr}`
+        : `TODAY'S GAUNTLET · ${q.label.toUpperCase()} · ${dateStr}`;
 
   const heroName = champ?.name ?? "Coliseo";
 
   const subline = !p || !champ
     ? "Vote on startup matchups. Discover companies you didn't know."
-    : p.t === "d"
-      ? "My pick — last one standing"
-      : p.out === "undefeated"
-        ? `Retired undefeated — ${p.n} straight win${p.n === 1 ? "" : "s"}`
-        : p.out === "retired"
-          ? `Retired with ${p.n} exhibition win${p.n === 1 ? "" : "s"}`
-          : p.n === 0
-            ? `Fell in the opening bout${conqueror ? ` to ${conqueror.name}` : ""}`
-            : `Outlasted ${p.n} challenger${p.n === 1 ? "" : "s"}${conqueror ? ` before falling to ${conqueror.name}` : ""}`;
+    : p.t === "c"
+      ? (champ.blurb ?? "Crowd-ranked on Conviction, Momentum & Talent")
+      : p.t === "d"
+        ? "My pick — last one standing"
+        : p.out === "undefeated"
+          ? `Retired undefeated — ${p.n} straight win${p.n === 1 ? "" : "s"}`
+          : p.out === "retired"
+            ? `Retired with ${p.n} exhibition win${p.n === 1 ? "" : "s"}`
+            : p.n === 0
+              ? `Fell in the opening bout${conqueror ? ` to ${conqueror.name}` : ""}`
+              : `Outlasted ${p.n} challenger${p.n === 1 ? "" : "s"}${conqueror ? ` before falling to ${conqueror.name}` : ""}`;
 
   const outlasted = p && p.t === "d" ? p.o.map((id) => companies.get(id)).filter(Boolean) : [];
 
@@ -174,7 +178,7 @@ export async function GET(req: NextRequest) {
         {/* hero */}
         <div style={{ display: "flex", alignItems: "center", gap: 40 }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-            <div style={{ display: "flex", fontSize: 44 }}>👑</div>
+            <div style={{ display: "flex", fontSize: 44 }}>{p?.t === "c" ? "🏛️" : "👑"}</div>
             <LogoTile co={champ} size={148} />
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 820 }}>

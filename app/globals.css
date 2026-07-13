@@ -98,7 +98,12 @@ body {
 /* ---------- Share landing page (/s) — where share links point ---------- */
 .share-landing { padding-top: 44px; text-align: center; max-width: 640px; }
 .share-landing .sharecard { text-align: left; }
-.share-cta { display: block; max-width: 320px; text-align: center; text-decoration: none; margin-top: 18px; }
+.share-cta { display: block; max-width: 320px; text-align: center; text-decoration: none; margin-top: 18px; margin-left: auto; margin-right: auto; }
+
+/* ---------- Public company profile pages (/c/[slug]) ---------- */
+.profile-page { max-width: 640px; padding-bottom: 60px; }
+.profile-brand { text-decoration: none; color: inherit; }
+.profile-page .done-note a { color: var(--teal2); }
 
 /* Vote arena — side-by-side vertical cards on wider screens; the mobile media
    query below restacks them into compact horizontal cards. */

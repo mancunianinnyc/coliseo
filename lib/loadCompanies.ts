@@ -27,7 +27,7 @@ interface CompanyRow {
   exit_note: string | null;
 }
 
-const COMPANY_COLUMNS =
+export const COMPANY_COLUMNS =
   "id, name, website, category, region, stage, blurb, gradient, prominence, logo_url, description, founded_year, headquarters, employees, total_funding, valuation, founders, tags, links, lifecycle, exited_at, exit_note";
 
 interface RatingRow {
@@ -39,7 +39,7 @@ interface RatingRow {
   season_start: number;
 }
 
-interface CompanyRowWithRatings extends CompanyRow {
+export interface CompanyRowWithRatings extends CompanyRow {
   ratings: Omit<RatingRow, "company_id">[];
 }
 
@@ -53,7 +53,7 @@ const emptyRating = (): Rating => ({ elo: 1500, games: 0, weekMovement: 0, seaso
 // on demand elsewhere (Discover / profile pages). Still page with .range() in case
 // the arena size is ever raised past 1000.
 const PAGE = 1000;
-const RATINGS_EMBED = "ratings(dimension, elo, games, week_movement, season_start)";
+export const RATINGS_EMBED = "ratings(dimension, elo, games, week_movement, season_start)";
 async function fetchArena(): Promise<CompanyRowWithRatings[]> {
   const out: CompanyRowWithRatings[] = [];
   for (let from = 0; ; from += PAGE) {
@@ -70,33 +70,20 @@ async function fetchArena(): Promise<CompanyRowWithRatings[]> {
   return out;
 }
 
-// Fetches + maps the Arena500 straight from Supabase. Used SERVER-SIDE by the
-// cached /api/arena route (and as the underlying implementation everywhere).
-// Returns null when Supabase isn't configured or the query fails — callers
-// decide their own fallback.
-export async function fetchArenaCompanies(): Promise<Company[] | null> {
-  if (!supabase) return null;
-
-  let companyRows: CompanyRowWithRatings[];
-  try {
-    companyRows = await fetchArena();
-  } catch (err) {
-    console.error("Supabase arena load failed:", err);
-    return null;
+// Map a raw companies row (with embedded ratings) into the app's Company
+// shape. Shared by the arena load and the per-company profile pages.
+export function mapCompanyRow(c: CompanyRowWithRatings): Company {
+  const ratings = {} as Record<QKey, Rating>;
+  for (const r of c.ratings ?? []) {
+    ratings[r.dimension] = {
+      elo: r.elo,
+      games: r.games,
+      weekMovement: r.week_movement,
+      seasonStart: r.season_start,
+    };
   }
-
-  return companyRows.map((c) => {
-    const ratings = {} as Record<QKey, Rating>;
-    for (const r of c.ratings ?? []) {
-      ratings[r.dimension] = {
-        elo: r.elo,
-        games: r.games,
-        weekMovement: r.week_movement,
-        seasonStart: r.season_start,
-      };
-    }
-    return {
-      id: c.id,
+  return {
+    id: c.id,
       name: c.name,
       website: c.website,
       category: c.category,
@@ -123,8 +110,20 @@ export async function fetchArenaCompanies(): Promise<Company[] | null> {
       lifecycle: c.lifecycle ?? "active",
       exitedAt: c.exited_at,
       exitNote: c.exit_note,
-    };
-  });
+  };
+}
+
+// Fetches + maps the Arena500 straight from Supabase. Used SERVER-SIDE by the
+// cached /api/arena route. Returns null when Supabase isn't configured or the
+// query fails — callers decide their own fallback.
+export async function fetchArenaCompanies(): Promise<Company[] | null> {
+  if (!supabase) return null;
+  try {
+    return (await fetchArena()).map(mapCompanyRow);
+  } catch (err) {
+    console.error("Supabase arena load failed:", err);
+    return null;
+  }
 }
 
 // Client-side arena load. Goes through the CACHED /api/arena route (revalidated
