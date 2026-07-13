@@ -70,18 +70,19 @@ async function fetchArena(): Promise<CompanyRowWithRatings[]> {
   return out;
 }
 
-// Loads the Arena500 (companies + their per-dimension ratings) from Supabase.
-// Falls back to the in-memory seed (lib/seed.ts) when Supabase isn't configured or
-// the query fails, so local dev keeps working without a project wired up.
-export async function loadCompanies(): Promise<Company[]> {
-  if (!supabase) return buildCompanies();
+// Fetches + maps the Arena500 straight from Supabase. Used SERVER-SIDE by the
+// cached /api/arena route (and as the underlying implementation everywhere).
+// Returns null when Supabase isn't configured or the query fails — callers
+// decide their own fallback.
+export async function fetchArenaCompanies(): Promise<Company[] | null> {
+  if (!supabase) return null;
 
   let companyRows: CompanyRowWithRatings[];
   try {
     companyRows = await fetchArena();
   } catch (err) {
-    console.error("Supabase load failed, falling back to seed data:", err);
-    return buildCompanies();
+    console.error("Supabase arena load failed:", err);
+    return null;
   }
 
   return companyRows.map((c) => {
@@ -124,4 +125,20 @@ export async function loadCompanies(): Promise<Company[]> {
       exitNote: c.exit_note,
     };
   });
+}
+
+// Client-side arena load. Goes through the CACHED /api/arena route (revalidated
+// every 60s) so a traffic spike hits Vercel's cache, not the database — every
+// visitor pulling ~500 rows straight from PostgREST was the scaling cliff.
+// Falls back to the in-memory seed (lib/seed.ts) when the route is unavailable
+// (backend not configured, or any error), so local dev keeps working without a
+// project wired up.
+export async function loadCompanies(): Promise<Company[]> {
+  try {
+    const res = await fetch("/api/arena");
+    if (res.ok) return (await res.json()) as Company[];
+  } catch (err) {
+    console.error("Arena route unavailable:", err);
+  }
+  return buildCompanies();
 }

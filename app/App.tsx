@@ -10,6 +10,7 @@ import { loadProfile, saveStreak } from "@/lib/profile";
 import { castVote, votesTodayCount, votesLifetimeCount, exhibitionTodayCount } from "@/lib/castVote";
 import { submitCompany } from "@/lib/submitCompany";
 import { flagUnknown } from "@/lib/unknowns";
+import { track, installErrorTracking } from "@/lib/track";
 import {
   applyElo,
   composite,
@@ -132,7 +133,7 @@ const webDomain = (w: string) => (w ?? "").trim().replace(/^https?:\/\//i, "").r
 const webHref = (w: string) => `https://${webDomain(w)}`;
 
 export default function App() {
-  const { userId, anonDisabled } = useSession();
+  const { userId, anonDisabled, ensureUserId } = useSession();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [view, setView] = useState<View>("vote");
   const [streak, setStreak] = useState(0);
@@ -272,6 +273,21 @@ export default function App() {
   useEffect(() => {
     if (doneToday && view === "vote" && !exhibition) setShowLimitModal(true);
   }, [doneToday, view, exhibition]);
+
+  // ---- Funnel instrumentation (Vercel Analytics custom events) ----
+  // Global error hook → client_error events, once per mount.
+  useEffect(() => {
+    installErrorTracking();
+  }, []);
+  // Which tab people actually use.
+  useEffect(() => {
+    track("view", { tab: view });
+  }, [view]);
+  // How exhibition runs end (dethroned / undefeated / retired) and how long
+  // champions survive — also the data for the champion-favoritism check.
+  useEffect(() => {
+    if (runOver) track("run_over", { outcome: runOver.outcome, defenses: runOver.defenses });
+  }, [runOver]);
 
   // On advancing to rounds 2 and 3, glide the just-earned breadcrumb to the top
   // of the viewport, so the user actually SEES "✓ you backed X" and then the next
@@ -438,10 +454,14 @@ export default function App() {
     ]);
     setDecided(null);
 
+    track("vote_cast", { kind: "arena", round: pickIndex + 1 });
+
     // Authoritative server record + Elo. Reconcile local ratings to the values
     // the DB actually applied (self-heals any optimistic drift; on refresh the
-    // app reloads from the DB anyway).
-    if (userId) {
+    // app reloads from the DB anyway). ensureUserId mints the pseudonymous
+    // identity on a visitor's FIRST vote (lazy auth — see lib/auth.ts).
+    void ensureUserId().then((uid) => {
+      if (!uid) return; // no backend identity — optimistic local-only mode
       void castVote({ companyA: a, companyB: b, dimension: qk, winner: winnerId }).then(
         (outcome) => {
           if (!outcome.ok) {
@@ -469,16 +489,21 @@ export default function App() {
           );
         },
       );
-    }
+    });
 
     const nextIndex = pickIndex + 1;
     setPickIndex(nextIndex);
     if (nextIndex >= 3) {
       setStreak((s) => {
         const bumped = s + 1;
-        if (userId) void saveStreak(userId, bumped); // persist the day's streak
+        // persist the day's streak (ensureUserId: identity exists by now —
+        // minted on round 1 — this just reads it back)
+        void ensureUserId().then((uid) => {
+          if (uid) void saveStreak(uid, bumped);
+        });
         return bumped;
       });
+      track("day_done", { streak: streak + 1 });
       setDoneToday(true); // today's picks are in — unlock the tables
       setView("done");
     } else {
@@ -495,7 +520,10 @@ export default function App() {
   // touches Elo) and swaps that card out for a fresh challenger, keeping the
   // other company in place so a running champion isn't lost.
   function markUnknown(company: Company) {
-    if (userId) void flagUnknown(userId, company.id, voteQ);
+    // Worth an identity: the obscurity signal is real data (lazy auth mints one).
+    void ensureUserId().then((uid) => {
+      if (uid) void flagUnknown(uid, company.id, voteQ);
+    });
     reshuffle(company.id === a ? b : a);
   }
 
@@ -508,6 +536,7 @@ export default function App() {
   // Start (or restart) a run. Carries the day's champion when we have it; on a
   // reload that wiped the day's picks, bout 1 crowns a champion instead.
   function startExhibition(champId: number | null = todaysPicks[todaysPicks.length - 1]?.winId ?? null) {
+    track("exhibition_start", { carried: champId != null });
     setRunOver(null);
     setRunDefenses(0);
     setRunChamp(champId);
@@ -554,7 +583,10 @@ export default function App() {
     const used = exhibitionUsed + 1;
     setExhibitionUsed(used);
 
-    if (userId) {
+    track("vote_cast", { kind: "exhibition", bout: used });
+
+    void ensureUserId().then((uid) => {
+      if (!uid) return; // no backend identity — optimistic local-only mode
       void castVote({ companyA: a, companyB: b, dimension: qk, winner: winnerId, kind: "exhibition" }).then(
         (outcome) => {
           if (!outcome.ok) {
@@ -580,7 +612,7 @@ export default function App() {
           );
         },
       );
-    }
+    });
 
     if (runChamp == null) {
       // Crowning bout: the winner becomes the run's champion with 1 win.
@@ -634,6 +666,7 @@ export default function App() {
   // Share the run's story — same native-share / clipboard pattern as shareCalls.
   function shareExhibition() {
     if (!runOver) return;
+    track("share", { what: "run", outcome: runOver.outcome });
     const champName = byId.get(runOver.champId)?.name ?? "My champion";
     const conqueror = runOver.conquerorId != null ? byId.get(runOver.conquerorId)?.name : null;
     const text =
@@ -683,6 +716,7 @@ export default function App() {
   // (mobile), and falls back to copying a text summary to the clipboard on
   // desktop. This is the seed of the dynamic share-image / OG-card growth loop.
   function shareCalls() {
+    track("share", { what: "calls" });
     const lines = todaysPicks
       .map((p) => `${QUESTIONS[p.q].label}: ${p.win} > ${p.lose}`)
       .join("\n");
@@ -706,6 +740,7 @@ export default function App() {
   // Close the first-run explainer and remember it, so it never shows again on
   // this browser.
   function dismissOnboard() {
+    track("onboard_dismissed");
     try {
       localStorage.setItem(ONBOARD_KEY, "1");
     } catch {
@@ -764,6 +799,9 @@ export default function App() {
     }
 
     setSubmitState({ state: "loading", msg: "Submitting…" });
+    // The submit RPC requires an authenticated (anon) session — mint one now
+    // if this visitor hasn't earned an identity yet (lazy auth).
+    await ensureUserId();
     const outcome = await submitCompany({
       name,
       website,
@@ -774,6 +812,7 @@ export default function App() {
     });
 
     if (outcome.ok) {
+      track("submit_company");
       setSubmitState({
         state: "ok",
         msg: `“${name}” submitted for review — it’ll enter the arena once approved.`,

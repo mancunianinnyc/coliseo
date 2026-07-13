@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -27,7 +28,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* Privacy-friendly, cookieless pageviews + the custom funnel events
+            in lib/track.ts. Requires Web Analytics enabled on the Vercel
+            project; a silent no-op until then. */}
+        <Analytics />
+      </body>
     </html>
   );
 }

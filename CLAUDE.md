@@ -37,10 +37,12 @@ credible no matter how large the DB gets. `loadCompanies` loads **only** the are
 
 ```
 app/
-  layout.tsx        Root layout + metadata
+  layout.tsx        Root layout + metadata + <Analytics/>
   page.tsx          Renders <App/>
   App.tsx           The whole interactive client app (vote / tables / profile / submit)
   globals.css       Design tokens + component styles
+  api/arena/        Cached Arena500 endpoint (ISR 60s) — clients read this, not
+                    PostgREST directly, so traffic spikes hit Vercel's cache not the DB
 lib/
   types.ts          Company, Rating, Vote types
   questions.ts      The 3 dimensions (Conviction / Momentum / Talent) + order
@@ -49,7 +51,10 @@ lib/
   companies.data.ts The seed dataset + CATEGORIES/REGIONS/Stage + EXITS (graduated) map
   supabase.ts       Browser Supabase client (null when env not configured)
   loadCompanies.ts  Loads the Arena500 (arena_eligible companies) + ratings from the DB
-  auth.ts           useSession(): anonymous sign-in + pseudonymous identity
+  auth.ts           useSession(): LAZY anonymous auth — identity minted on first
+                    vote/submit via ensureUserId(), never on page load (protects
+                    Supabase auth rate limits from traffic spikes)
+  track.ts          Vercel Analytics custom-event wrapper + client_error hook
   profile.ts        Load/create profile, persist streak/tier
   castVote.ts       RPC client for server-authoritative voting
   submitCompany.ts  RPC client for moderated submissions
