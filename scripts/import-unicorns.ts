@@ -19,7 +19,10 @@ const conn = process.env.SUPABASE_DB_URL;
 if (!conn) { console.error("Missing SUPABASE_DB_URL"); process.exit(1); }
 
 const bareDomain = (u: string) => (u ?? "").replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/.*$/, "").trim().toLowerCase();
-const cleanName = (t: string) => t.replace(/\s*\((?:company|software|app|finance|corporation|firm|brand)\)\s*$/i, "").trim();
+// Strip ANY trailing Wikipedia disambiguator — the old word-list version missed
+// multi-word parentheticals ("(productivity software)", "(blockchain)"…), which let
+// "Notion (productivity software)" bypass the name-dedupe against the seed's Notion.
+const cleanName = (t: string) => t.replace(/\s*\([^)]*\)\s*$/, "").trim();
 
 const COUNTRIES = new Set(["afghanistan","albania","algeria","argentina","armenia","australia","austria","azerbaijan","bahrain","bangladesh","belarus","belgium","bolivia","brazil","bulgaria","cambodia","canada","chile","china","people's republic of china","colombia","costa rica","croatia","cyprus","czech republic","czechia","denmark","kingdom of denmark","ecuador","egypt","estonia","finland","france","georgia","germany","ghana","greece","hong kong","hungary","iceland","india","indonesia","iran","iraq","ireland","republic of ireland","israel","italy","japan","jordan","kazakhstan","kenya","kuwait","latvia","lebanon","liechtenstein","lithuania","luxembourg","malaysia","malta","mexico","monaco","morocco","nepal","netherlands","new zealand","nigeria","north macedonia","norway","oman","pakistan","panama","peru","philippines","poland","portugal","qatar","romania","russia","saudi arabia","senegal","serbia","seychelles","singapore","slovakia","slovenia","south africa","south korea","spain","sri lanka","sweden","switzerland","taiwan","thailand","tunisia","turkey","ukraine","united arab emirates","united kingdom","united states","united states of america","uruguay","uzbekistan","venezuela","vietnam"]);
 // Known exits (IPO / acquired / dead) that Wikidata's P414/P576 miss — a manual
@@ -32,6 +35,8 @@ export const EXITED = new Set([
   "careem","credit karma","kabam","peak games","jet.com","gilt groupe","flipkart","tokopedia","gojek",
   "avito.ru","suning holdings group","livingsocial","letgo","shopclues","mozido","bloom energy server",
   "glovo","wolt",
+  // July 2026 arena re-scan:
+  "hike messenger","paytm","delhivery","walkme","j&t express","deliverr","freshly",
 ].map((s) => s.toLowerCase()));
 
 const isGov = (d: string) => /(^|\.)gov(\.|$)|\.gob(\.|$)|\.go\.|admin\.ch|service-public|canada\.ca|australia\.gov|korea\.net|sweden\.se|finland\.fi|norway\.no|indonesia\.go|\.public\.|lietuva\.lt|valitsus\.ee|chinhphu|czechia\.eu|denmark\.dk|ukraine\.ua|italia\.it|iceland\.is|liechtenstein\.li|el-mouradia|oesterreich|verwaltung\.bund/.test(d);

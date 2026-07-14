@@ -18,6 +18,12 @@ if (!connectionString) {
   process.exit(1);
 }
 
+// Not startups at all — YC funds a handful of nonprofits (they arrive via the
+// yc-oss import with strong signals and can score into the arena). The arena is
+// for private venture-backed startups only; keep these permanently out. They
+// stay in the DB (Discover/profiles), just never arena_eligible. Append-only.
+const NOT_STARTUPS = new Set(["aclu", "noora health"]);
+
 interface Row {
   id: number;
   prominence: number | null;
@@ -55,6 +61,7 @@ async function main() {
       "select id, prominence, employees, valuation, total_funding, source, name from companies where lifecycle = 'active'",
     );
     const scored = rows
+      .filter((c) => !NOT_STARTUPS.has(c.name.toLowerCase()))
       .map((c) => ({ id: c.id, name: c.name, notab: notability(c) }))
       .sort((a, b) => b.notab - a.notab || a.name.localeCompare(b.name));
 

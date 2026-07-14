@@ -24,7 +24,16 @@ import {
   tierFor,
 } from "@/lib/elo";
 
-type View = "vote" | "done" | "board" | "profile" | "submit";
+type View = "vote" | "done" | "board" | "profile" | "submit" | "discover";
+
+// The Discover pool served by /api/discover — random companies from the FULL
+// database (not the Arena500). "notable" = the promotion zone just outside the
+// arena; "wild" = uniform random over the whole long tail.
+interface DiscoverPool {
+  notable: Company[];
+  wild: Company[];
+  total: number;
+}
 type BoardQ = QKey | "ALL";
 
 // The three arena stage tiers, in progression order — the Tables' stage filter.
@@ -70,7 +79,21 @@ interface Pick {
 
 // Crisp line icons for the bottom nav (stroke = currentColor, so they inherit
 // active/inactive colour and the active gradient). Line-drawn, not emoji.
-function NavIcon({ name }: { name: "vote" | "tables" | "locked" | "submit" }) {
+// The scouting-report hook line for a Discover spotlight — the most concrete,
+// curiosity-piquing facts we hold on the company (valuation > funding, then
+// team size / vintage / HQ). Real news enrichment is a future data pass; until
+// then these are the honest hooks the database can back up.
+function spotlightChips(c: Company): string[] {
+  const chips: string[] = [];
+  if (c.valuation) chips.push(`💰 ${c.valuation} valuation`);
+  else if (c.totalFunding) chips.push(`💸 ${c.totalFunding} raised`);
+  if (c.employees) chips.push(`👥 ${c.employees} people`);
+  if (c.foundedYear) chips.push(`🗓 Founded ${c.foundedYear}`);
+  if (chips.length < 3 && c.headquarters) chips.push(`📍 ${c.headquarters}`);
+  return chips.slice(0, 3);
+}
+
+function NavIcon({ name }: { name: "vote" | "tables" | "locked" | "submit" | "discover" }) {
   const p = {
     width: 23,
     height: 23,
@@ -111,6 +134,13 @@ function NavIcon({ name }: { name: "vote" | "tables" | "locked" | "submit" }) {
       <svg {...p}>
         <rect x="3" y="11" width="18" height="11" rx="2.5" />
         <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </svg>
+    );
+  if (name === "discover")
+    return (
+      <svg {...p}>
+        <circle cx="12" cy="12" r="9.5" />
+        <polygon points="15.9 8.1 14 14 8.1 15.9 10 10 15.9 8.1" />
       </svg>
     );
   return (
@@ -207,6 +237,11 @@ export default function App() {
   // The "how the Elo scoring works" explainer — opened from the leaderboard
   // (where the numbers live) and the sidebar, for people new to Elo ratings.
   const [showScoring, setShowScoring] = useState(false);
+  // Discover: the server-sampled pool plus the 3 spotlights currently drawn
+  // from it. A fresh draw happens on every visit to the tab (and on demand),
+  // so the surface never looks the same twice.
+  const [discoverPool, setDiscoverPool] = useState<DiscoverPool | null>(null);
+  const [spotlights, setSpotlights] = useState<Company[]>([]);
   // The leaderboard is gated behind completing today's 3 picks. Persisted via
   // the profile's last_active_date, so it stays unlocked on refresh for the day.
   const [doneToday, setDoneToday] = useState(false);
@@ -359,6 +394,44 @@ export default function App() {
         .sort((x, y) => (y.exitedAt ?? "").localeCompare(x.exitedAt ?? "")),
     [companies],
   );
+
+  // Draw 3 spotlights from the Discover pool: 1 anchor from the promotion zone
+  // (semi-recognizable) + 2 true deep cuts, shuffled. Every entry to the tab
+  // and every "new draw" re-rolls, so returning always shows a different trio.
+  function drawSpotlights(pool: DiscoverPool | null) {
+    if (!pool) return;
+    const shuffled = <T,>(arr: T[]) => [...arr].sort(() => Math.random() - 0.5);
+    const picked = [...shuffled(pool.notable).slice(0, 1), ...shuffled(pool.wild).slice(0, 2)];
+    // Top up from either bucket if one ran thin (tiny DBs, fetch hiccups).
+    const seen = new Set(picked.map((c) => c.id));
+    for (const c of shuffled([...pool.notable, ...pool.wild])) {
+      if (picked.length >= 3) break;
+      if (!seen.has(c.id)) { picked.push(c); seen.add(c.id); }
+    }
+    setSpotlights(shuffled(picked).slice(0, 3));
+  }
+
+  // Fetch a pool + draw whenever the Discover tab opens. The route is
+  // ISR-cached (5 min), so this is cheap even if someone bounces in and out;
+  // within a cache window the *draw* still reshuffles from the pool of 24.
+  useEffect(() => {
+    if (view !== "discover") return;
+    let stale = false;
+    fetch("/api/discover")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((pool: DiscoverPool | null) => {
+        if (stale || !pool || !(pool.notable.length + pool.wild.length)) return;
+        setDiscoverPool(pool);
+        drawSpotlights(pool);
+      })
+      .catch(() => {
+        // Offline / backend missing: fall back to a draw over the loaded arena.
+        if (!stale && !discoverPool && activeCompanies.length)
+          drawSpotlights({ notable: [], wild: activeCompanies, total: activeCompanies.length });
+      });
+    return () => { stale = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
   const [a, b] = pair;
   const A = byId.get(a);
   const B = byId.get(b);
@@ -1314,8 +1387,8 @@ export default function App() {
             <div className="rail-h">Discover</div>
             <div className="rail-stats">
               <div>
-                <b>{companies.length}</b>
-                <span>startups</span>
+                <b>{activeCompanies.length}</b>
+                <span>in the arena</span>
               </div>
               <div>
                 <b>{CATEGORIES.length}</b>
@@ -1340,7 +1413,10 @@ export default function App() {
                 </button>
               ))}
             </div>
-            <button className="rail-cta" onClick={() => setView("submit")}>
+            <button className="rail-cta" onClick={() => setView("discover")}>
+              🔭 Open the scouting report
+            </button>
+            <button className="rail-link" onClick={() => setView("submit")}>
               ➕ Submit a startup
             </button>
           </div>
@@ -1862,6 +1938,65 @@ export default function App() {
         </section>
       )}
 
+      {/* DISCOVER — the scouting report. Three spotlights drawn from the FULL
+          database (~4,500 companies, not the Arena500), re-shuffled on every
+          visit. Cards link to the crawlable /c/[slug] profiles since these
+          companies aren't in the client's arena payload. */}
+      {view === "discover" && (
+        <section className="discover">
+          <div className="done-eyebrow">🔭 The scouting report</div>
+          <h1 className="disc-h">Beyond the Arena500</h1>
+          <p className="disc-sub">
+            Three contenders drawn from the full ledger
+            {discoverPool?.total ? (
+              <>
+                {" "}
+                of <b>{discoverPool.total.toLocaleString()}</b> startups
+              </>
+            ) : null}
+            {" "}— fresh names every visit. Most have never set foot in the arena.
+          </p>
+          {spotlights.length === 0 && <div className="disc-empty">Scouting the ledger…</div>}
+          {spotlights.map((c) => (
+            <article className="spot" key={c.id}>
+              <div className="spot-head">
+                <Logo c={c} cls="spot-logo" />
+                <div className="spot-id">
+                  <div className="spot-name">{c.name}</div>
+                  <div className="spot-meta">
+                    {c.category} · {c.region} · {c.stage}
+                  </div>
+                </div>
+              </div>
+              {(c.blurb || c.description) && <p className="spot-blurb">{c.blurb || c.description}</p>}
+              {spotlightChips(c).length > 0 && (
+                <div className="spot-chips">
+                  {spotlightChips(c).map((ch) => (
+                    <span className="spot-chip" key={ch}>
+                      {ch}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <a className="spot-cta" href={`/c/${companySlug(c)}`} target="_blank" rel="noreferrer">
+                📄 Read the full dossier →
+              </a>
+            </article>
+          ))}
+          {spotlights.length > 0 && (
+            <button className="nextbtn disc-redraw" onClick={() => drawSpotlights(discoverPool)}>
+              🎲 Draw three more
+            </button>
+          )}
+          <p className="done-note disc-note">
+            Know a startup that belongs in the ledger?{" "}
+            <button className="scoring-link" onClick={() => setView("submit")}>
+              Submit it →
+            </button>
+          </p>
+        </section>
+      )}
+
       {/* SUBMIT */}
       {view === "submit" && (
         <section>
@@ -2342,6 +2477,15 @@ export default function App() {
               <NavIcon name={doneToday ? "tables" : "locked"} />
             </span>
             Arena500
+          </button>
+          <button
+            className={view === "discover" ? "active" : ""}
+            onClick={() => setView("discover")}
+          >
+            <span className="ic">
+              <NavIcon name="discover" />
+            </span>
+            Discover
           </button>
           <button
             className={view === "submit" ? "active" : ""}

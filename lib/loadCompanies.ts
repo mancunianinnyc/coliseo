@@ -48,10 +48,14 @@ const emptyRating = (): Rating => ({ elo: 1500, games: 0, weekMovement: 0, seaso
 
 // The app surfaces only the Arena500 (arena_eligible = true) — a fixed ~500, so
 // even as the underlying DB grows into the tens of thousands this stays a small,
-// fast load. Ratings are embedded (PostgREST nests the related rows) so there's no
-// separate ratings query + 1000-row cap to juggle. Non-arena companies are loaded
-// on demand elsewhere (Discover / profile pages). Still page with .range() in case
-// the arena size is ever raised past 1000.
+// fast load. Graduates (lifecycle != 'active') ride along too: they're never
+// arena_eligible, but the Tables' Graduates list is computed client-side from
+// this same payload, so filtering to arena-only alone would silently empty it.
+// A few dozen graduates don't change the payload class. Ratings are embedded
+// (PostgREST nests the related rows) so there's no separate ratings query +
+// 1000-row cap to juggle. Non-arena actives are loaded on demand elsewhere
+// (Discover / profile pages). Still page with .range() in case the roster is
+// ever raised past 1000.
 const PAGE = 1000;
 export const RATINGS_EMBED = "ratings(dimension, elo, games, week_movement, season_start)";
 async function fetchArena(): Promise<CompanyRowWithRatings[]> {
@@ -60,7 +64,8 @@ async function fetchArena(): Promise<CompanyRowWithRatings[]> {
     const { data, error } = await supabase!
       .from("companies")
       .select(`${COMPANY_COLUMNS}, ${RATINGS_EMBED}`)
-      .eq("arena_eligible", true)
+      .or("arena_eligible.eq.true,lifecycle.neq.active")
+      .eq("status", "live")
       .range(from, from + PAGE - 1);
     if (error) throw error;
     const rows = (data ?? []) as unknown as CompanyRowWithRatings[];

@@ -45,7 +45,10 @@ app/
                     PostgREST directly, so traffic spikes hit Vercel's cache not the DB
   api/og/           Dynamic OG share image (edge runtime — REQUIRED, node build of
                     @vercel/og crashes on Windows paths with spaces)
-  s/                Share landing page — share links point here; OG meta → /api/og
+  api/discover/     Discover pool (ISR 300s) — random companies from the FULL DB
+                    (non-arena long tail); the Discover tab draws 3 spotlights per visit
+  s/                Share landing page — share links point here; OG meta → /api/og.
+                    50/50 split: the sharer's result + an invitation to play
 lib/
   types.ts          Company, Rating, Vote types
   questions.ts      The 3 dimensions (Conviction / Momentum / Talent) + order

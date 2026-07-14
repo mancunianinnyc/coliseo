@@ -88,6 +88,16 @@ export const EXITS: Record<string, { s: Lifecycle; note: string; year?: number }
   xAI: { s: "acquired", note: "Acquired by SpaceX, 2026", year: 2026 },
   Cursor: { s: "acquired", note: "Acquired by SpaceX, 2026", year: 2026 },
   Wiz: { s: "acquired", note: "Acquired by Google, 2026", year: 2026 },
+  "Hims & Hers": { s: "public", note: "Public 2021 · NYSE: HIMS", year: 2021 },
+  Lenskart: { s: "public", note: "IPO 2025 · NSE: LENSKART", year: 2025 },
+  Meesho: { s: "public", note: "IPO 2025 · NSE: MEESHO", year: 2025 },
+  Groww: { s: "public", note: "IPO 2025 · NSE: GROWW", year: 2025 },
+  Navan: { s: "public", note: "IPO 2025 · NASDAQ: NAVN", year: 2025 },
+  Cerebras: { s: "public", note: "IPO 2026 · NASDAQ: CBRS", year: 2026 },
+  BeReal: { s: "acquired", note: "Acquired by Voodoo, 2024", year: 2024 },
+  Neon: { s: "acquired", note: "Acquired by Databricks, 2025", year: 2025 },
+  Windsurf: { s: "acquired", note: "Acquired by Cognition, 2025", year: 2025 },
+  Superhuman: { s: "acquired", note: "Acquired by Grammarly, 2025", year: 2025 },
 };
 
 export const REGIONS = [

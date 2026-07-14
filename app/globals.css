@@ -104,10 +104,56 @@ body {
 /* Exhibition entry CTA on the done card — teal-tinted to read as the fun path. */
 .exh-cta { border-color: var(--teal); color: var(--teal2); font-weight: 800; }
 
-/* ---------- Share landing page (/s) — where share links point ---------- */
-.share-landing { padding-top: 44px; text-align: center; max-width: 640px; }
+/* ---------- Share landing page (/s) — where share links point ----------
+   Deliberate 50/50 split: the friend's result card (proof — they already saw it
+   in the chat message) and an equal-weight invitation to play. Stacked halves on
+   mobile, side-by-side columns on desktop. */
+.share-landing { padding-top: 36px; text-align: center; max-width: 960px; }
 .share-landing .sharecard { text-align: left; }
-.share-cta { display: block; max-width: 320px; text-align: center; text-decoration: none; margin-top: 18px; margin-left: auto; margin-right: auto; }
+.share-split { display: grid; gap: 34px; align-items: start; }
+@media (min-width: 880px) {
+  .share-split { grid-template-columns: 1fr 1fr; gap: 44px; }
+  .share-landing { padding-top: 60px; }
+}
+/* Compact result card — this half is confirmation, not the headline act. */
+.sharecard-mini .sc-hero-logo { width: 60px; height: 60px; border-radius: 17px; font-size: 25px; }
+.sharecard-mini .sc-hero-logo img { padding: 10px; }
+.sharecard-mini .sc-hero-name { font-size: 22px; margin-top: 9px; }
+.sharecard-mini .sc-crown { font-size: 19px; }
+.sharecard-mini.champ { padding: 15px 17px 13px; }
+/* The invitation half — light card so the dark result card doesn't dominate. */
+.share-invite { background: var(--card); border: 1.5px solid var(--line); border-radius: 22px; padding: 22px 20px 24px; box-shadow: var(--shadow-sm); }
+.share-invite-h { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: clamp(24px, 5.4vw, 30px); letter-spacing: -.4px; line-height: 1.12; margin-top: 10px; text-wrap: balance; }
+.share-invite-sub { font-size: 12px; letter-spacing: 1.6px; color: var(--muted); text-transform: uppercase; font-weight: 800; margin-top: 16px; }
+.share-invite-q { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: clamp(19px, 4.4vw, 23px); line-height: 1.2; margin-top: 6px; text-wrap: balance; }
+.share-invite-q span { background: linear-gradient(90deg, var(--coral), var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.share-invite-steps { list-style: none; margin: 18px auto 0; max-width: 380px; text-align: left; display: grid; gap: 10px; }
+.share-invite-steps li { font-size: 13.5px; color: var(--muted); line-height: 1.45; }
+.share-invite-steps li b { color: var(--ink); display: block; font-size: 14px; }
+.share-cta { display: block; max-width: 320px; text-align: center; text-decoration: none; margin-top: 20px; margin-left: auto; margin-right: auto; }
+
+/* ---------- Discover — the scouting report ----------
+   Three spotlight cards drawn from the full database, re-shuffled per visit.
+   Airy editorial feel: big Fraunces header, generous cards, one clear action. */
+.discover { text-align: center; padding-top: 8px; }
+.disc-h { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: clamp(26px, 6vw, 34px); letter-spacing: -.5px; line-height: 1.1; }
+.disc-sub { font-size: 13.5px; color: var(--muted); margin: 8px auto 22px; max-width: 460px; line-height: 1.5; }
+.disc-sub b { color: var(--ink); }
+.disc-empty { color: var(--muted); font-weight: 700; padding: 40px 0; }
+.spot { background: var(--card); border: 1.5px solid var(--line); border-radius: 22px; padding: 18px 18px 16px; margin-bottom: 14px; text-align: left; box-shadow: var(--shadow-sm); transition: .18s; }
+.spot:hover { border-color: var(--teal); box-shadow: var(--shadow); transform: translateY(-2px); }
+.spot-head { display: flex; align-items: center; gap: 13px; }
+.spot-logo { position: relative; width: 52px; height: 52px; border-radius: 15px; display: grid; place-items: center; font-size: 22px; font-weight: 800; color: #fff; overflow: hidden; flex-shrink: 0; }
+.spot-logo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 8px; background: #fff; }
+.spot-name { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: 21px; letter-spacing: -.3px; line-height: 1.15; overflow-wrap: anywhere; }
+.spot-meta { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 2px; }
+.spot-blurb { font-size: 14px; line-height: 1.5; color: var(--ink); margin-top: 12px; overflow-wrap: anywhere; }
+.spot-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.spot-chip { background: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; font-size: 12px; font-weight: 700; color: var(--ink); }
+.spot-cta { display: inline-block; margin-top: 13px; font-size: 13.5px; font-weight: 800; color: var(--teal2); text-decoration: none; }
+.spot-cta:hover { text-decoration: underline; }
+.disc-redraw { margin-top: 8px; }
+.disc-note { margin-top: 18px; }
 
 /* ---------- Public company profile pages (/c/[slug]) ---------- */
 .profile-page { max-width: 640px; padding-bottom: 60px; }
