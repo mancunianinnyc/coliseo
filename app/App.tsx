@@ -42,6 +42,38 @@ const STAGES = ["Early", "Growth", "Late"] as const;
 // First-run onboarding is shown once per browser. Bump the version suffix to
 // re-show the explainer after a material change to its copy.
 const ONBOARD_KEY = "ce_onboarded_v5"; // v5: added the exhibition step
+// The user's last daily champion, stored locally so tomorrow's Round 1 opens
+// with THEIR champ defending the crown — personal continuity across days, the
+// strongest return-reason we can build without a notification channel.
+const CHAMP_KEY = "ce_champ_v1";
+const localDay = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local tz
+
+function saveDayChamp(id: number) {
+  try {
+    localStorage.setItem(CHAMP_KEY, JSON.stringify({ id, dt: localDay() }));
+  } catch {
+    /* storage blocked — continuity just doesn't happen */
+  }
+}
+
+// Returns yesterday's (or earlier's) champion id if it can open today's
+// gauntlet: crowned on a PREVIOUS local day, not yet seated today, and still an
+// active company in the loaded arena. Marks it seated so a mid-day reload
+// doesn't re-claim it.
+function loadCarriedChamp(list: Company[]): number | null {
+  try {
+    const raw = localStorage.getItem(CHAMP_KEY);
+    if (!raw) return null;
+    const stored = JSON.parse(raw) as { id: number; dt: string; seated?: string };
+    if (stored.dt === localDay() || stored.seated === localDay()) return null;
+    const c = list.find((x) => x.id === stored.id);
+    if (!c || !isActive(c)) return null;
+    localStorage.setItem(CHAMP_KEY, JSON.stringify({ ...stored, seated: localDay() }));
+    return stored.id;
+  } catch {
+    return null;
+  }
+}
 
 // Exhibition bouts — the post-daily survival run. The day's champion keeps
 // defending against fresh challengers; every bout is a real (append-only) vote
@@ -242,6 +274,9 @@ export default function App() {
   // so the surface never looks the same twice.
   const [discoverPool, setDiscoverPool] = useState<DiscoverPool | null>(null);
   const [spotlights, setSpotlights] = useState<Company[]>([]);
+  // Yesterday's champion, when it opened today's gauntlet (see openingPair) —
+  // drives the "your champion defends" line on Round 1.
+  const [carriedChamp, setCarriedChamp] = useState<number | null>(null);
   // The leaderboard is gated behind completing today's 3 picks. Persisted via
   // the profile's last_active_date, so it stays unlocked on refresh for the day.
   const [doneToday, setDoneToday] = useState(false);
@@ -371,6 +406,9 @@ export default function App() {
   // One question per day, rotating by UTC calendar day so everyone gets the same
   // question on the same day. It stays fixed across all 3 of the day's rounds.
   const voteQ = QORDER[Math.floor(Date.now() / 86_400_000) % QORDER.length];
+  // Tomorrow's dimension — named in the end-of-day teasers so returning has a
+  // concrete hook ("Momentum day — your champ defends"), not just "come back".
+  const tomorrowQ = QORDER[(Math.floor(Date.now() / 86_400_000) + 1) % QORDER.length];
   // New-user warm-up: only surface companies at/above this prominence tier until
   // the user has played a bit, so their first matchups are recognizable and the
   // game clicks before we introduce deep cuts. Defaults high (new-user-safe)
@@ -382,9 +420,11 @@ export default function App() {
   // Companies eligible for the arena (voting + live rankings).
   const activeCompanies = useMemo(() => companies.filter(isActive), [companies]);
   // Newest additions (highest ids), for the desktop Discover rail — a peek into
-  // the arena that doesn't leak the gated leaderboard.
+  // the arena that doesn't leak the gated leaderboard. Active only: the payload
+  // now includes graduates (for the Graduates list), and dead companies make a
+  // terrible "Just added" shelf.
   const recentlyAdded = useMemo(
-    () => [...companies].sort((a, b) => b.id - a.id).slice(0, 5),
+    () => companies.filter(isActive).sort((a, b) => b.id - a.id).slice(0, 5),
     [companies],
   );
   const graduates = useMemo(
@@ -479,6 +519,13 @@ export default function App() {
   // prominence-peer challenger — so even round 1 is a fair, recognizable-enough
   // matchup instead of famous-vs-obscure.
   function openingPair(list: Company[]): [number, number] {
+    // Returning player: their last daily champion opens the day defending the
+    // crown (personal continuity — you resume YOUR story, not a fresh quiz).
+    const carried = loadCarriedChamp(list);
+    if (carried != null) {
+      setCarriedChamp(carried);
+      return [carried, pickChallenger(list, carried, voteQ, [])];
+    }
     const eligible = list.filter((c) => isActive(c) && (c.prominence ?? 2) >= warmupFloor);
     const anchors = eligible.length ? eligible : list.filter(isActive);
     const anchor = anchors[Math.floor(Math.random() * anchors.length)];
@@ -607,6 +654,7 @@ export default function App() {
         return bumped;
       });
       track("day_done", { streak: streak + 1 });
+      saveDayChamp(winnerId); // tomorrow's Round 1 opens with this champ defending
       setDoneToday(true); // today's picks are in — unlock the tables
       setView("done");
     } else {
@@ -1475,8 +1523,10 @@ export default function App() {
           <div className="big">✅</div>
           <h2>That&apos;s your 3 for today</h2>
           <p>
-            Today&apos;s three arena picks are in — your streak is safe, and a fresh question lands
-            tomorrow.
+            Today&apos;s three arena picks are in — your streak is safe. Tomorrow:{" "}
+            {QUESTIONS[tomorrowQ].emoji} <b>{QUESTIONS[tomorrowQ].label} day</b>
+            {todaysPicks.length > 0 && `, and ${todaysPicks[todaysPicks.length - 1].win} defends your crown`}
+            .
             {exhibitionUsed < EXHIBITION_CAP &&
               " Still got takes? Exhibition bouts count at ¼ weight and don't touch your daily 3."}
           </p>
@@ -1539,9 +1589,24 @@ export default function App() {
             <div className="k">
               {exhibition
                 ? `Exhibition · ¼ weight · ${Math.max(0, EXHIBITION_CAP - exhibitionUsed)} bout${EXHIBITION_CAP - exhibitionUsed === 1 ? "" : "s"} left today`
-                : `Pick ${Math.min(pickIndex, 2) + 1} of 3 · ${QUESTIONS[voteQ].label}`}
+                : `Round ${Math.min(pickIndex, 2) + 1} of 3 · ${QUESTIONS[voteQ].label}`}
             </div>
             <h1 dangerouslySetInnerHTML={{ __html: QUESTIONS[voteQ].q }} />
+            {/* Newcomers get a persistent, non-dismissible instruction right
+                where the action is — the banner above is dismissible and was
+                being missed; 82% of launch-week visitors bounced without a
+                single tap. Disappears once the game has clicked (9 votes). */}
+            {!exhibition && !decided && lifetimeVotes < 9 && (
+              <p className="tap-hint">⚔️ Tap the startup you&apos;d back — winner stays on</p>
+            )}
+            {/* Returning player: Round 1 opens with THEIR champ on the line. */}
+            {!exhibition && carriedChamp === a && pickIndex === 0 && A && (
+              <p className="exh-status">
+                👑 <b>{A.name}</b> — your last champion — defends the crown
+                {Math.round(A.ratings[voteQ].weekMovement) !== 0 &&
+                  ` · ${A.ratings[voteQ].weekMovement > 0 ? "+" : ""}${Math.round(A.ratings[voteQ].weekMovement)} this week`}
+              </p>
+            )}
             {exhibition && runChamp != null && (
               <p className="exh-status">
                 👑 <b>{byId.get(runChamp)?.name}</b> has held the crown for {runDefenses} bout
@@ -1549,7 +1614,16 @@ export default function App() {
               </p>
             )}
           </div>
-          <div className="arena">
+          {/* A visitor's very first matchup gets softly pulsing cards until the
+              first tap — the cards must read as buttons, not content. */}
+          <div
+            className={
+              "arena" +
+              (lifetimeVotes === 0 && todaysPicks.length === 0 && !decided && !exhibition
+                ? " arena-first"
+                : "")
+            }
+          >
             <Fighter c={A} side="A" />
             <div className="vs">
               <div className="orb">VS</div>
@@ -1572,14 +1646,18 @@ export default function App() {
                 <div className="result-kicker">{QUESTIONS[voteQ].chip}</div>
                 <div className="result-title">
                 {(() => {
+                  // The crowd reveal: the Elo win probability IS the crowd's
+                  // line, so every pick gets an immediate with-the-crowd /
+                  // contrarian verdict with a concrete number. This is the
+                  // payoff moment — a private tap becomes a social claim.
                   const w = decided.winSide === "A" ? A : B;
                   const l = decided.winSide === "A" ? B : A;
                   const pct = Math.round(expected(w, l, voteQ) * 100);
-                  return pct >= 70
-                    ? `Backing the favourite — ${w.name}`
-                    : pct <= 35
-                      ? `🚨 Upset! You backed the underdog ${w.name}`
-                      : `Line-ball call — you're giving it to ${w.name}`;
+                  return pct >= 60
+                    ? `🤝 With the crowd — ${w.name} is the ${pct}% favourite`
+                    : pct <= 40
+                      ? `🎯 Contrarian call — the line is ${100 - pct}% against ${w.name}`
+                      : `⚖️ Line-ball — you're giving it to ${w.name}`;
                 })()}
                 </div>
                 {(() => {
@@ -1601,7 +1679,7 @@ export default function App() {
           <p className="note">
             {anonDisabled
               ? "⚠ Anonymous sign-ins are disabled in Supabase — votes aren’t being recorded yet. Enable them in Authentication → Sign In / Providers."
-              : `Votes are recorded to your pseudonymous profile · ranking the Arena ${companies.length}`}
+              : `Votes are recorded to your pseudonymous profile · ranking the Arena ${activeCompanies.length}`}
           </p>
           </div>
         </section>
@@ -1742,7 +1820,7 @@ export default function App() {
               </button>
               <p className="done-note" aria-live="polite">
                 {shareMsg ??
-                  "You’ve unlocked today’s Arena500. Come back tomorrow to keep the streak alive."}
+                  `You’ve unlocked today’s Arena500. Tomorrow: ${QUESTIONS[tomorrowQ].emoji} ${QUESTIONS[tomorrowQ].label} day${champName ? ` — ${champName} defends your crown` : ""}.`}
               </p>
               {process.env.NODE_ENV !== "production" && (
                 <button className="simday" onClick={simDay} style={{ marginTop: 4 }}>

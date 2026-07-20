@@ -101,6 +101,17 @@ body {
 /* Exhibition run status ("👑 X has held the crown for N bouts") under the question. */
 .exh-status { margin-top: 8px; font-size: 13px; color: var(--muted); font-weight: 700; }
 .exh-status b { color: var(--ink); }
+/* Newcomer instruction under the question — persistent (not dismissible) until
+   the game has clicked. The single most important line for first-tap conversion. */
+.tap-hint { margin-top: 10px; font-size: 14px; font-weight: 800; color: var(--teal2); }
+/* First-ever matchup: cards alternate a soft glow so they read as tappable. */
+@keyframes cardPulse {
+  0%, 100% { box-shadow: var(--shadow-sm); border-color: var(--line); }
+  50% { box-shadow: 0 0 0 3px rgba(14, 182, 166, .25), var(--shadow); border-color: var(--teal); }
+}
+.arena-first .fighter { animation: cardPulse 2.4s ease-in-out infinite; }
+.arena-first .fighter:last-child { animation-delay: 1.2s; }
+@media (prefers-reduced-motion: reduce) { .arena-first .fighter { animation: none; } }
 /* Exhibition entry CTA on the done card — teal-tinted to read as the fun path. */
 .exh-cta { border-color: var(--teal); color: var(--teal2); font-weight: 800; }
 

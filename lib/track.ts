@@ -1,12 +1,14 @@
 "use client";
 
 import { track as vercelTrack } from "@vercel/analytics";
+import { supabase } from "./supabase";
 
-// Thin wrapper over Vercel Analytics custom events, so instrumentation can't
-// ever break the app (analytics blocked, not yet enabled on the project, ad
-// blockers). Events show up in the Vercel dashboard next to pageviews — the
-// launch funnel (onboard → vote → day_done → exhibition → share) with zero
-// extra backend load.
+// Every event goes two places, and neither may ever break the app:
+//  1. Vercel Analytics — but custom events need a Pro team, so on Hobby they
+//     silently drop (pageviews still record).
+//  2. Our own `events` table in Supabase (supabase/events.sql, insert-only
+//     RLS) — the funnel (landed → vote_cast → day_done → share) we actually
+//     own and can query, regardless of Vercel plan.
 //
 // Keep names/props LOW-CARDINALITY (they're aggregated, not a log): no ids,
 // no free text beyond the truncated error message.
@@ -18,6 +20,18 @@ export function track(
     vercelTrack(name, props);
   } catch {
     /* analytics must never take the app down */
+  }
+  try {
+    if (supabase)
+      void supabase
+        .from("events")
+        .insert({ name, props: props ?? null })
+        .then(
+          () => {},
+          () => {},
+        );
+  } catch {
+    /* same rule */
   }
 }
 
